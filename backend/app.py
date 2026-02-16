@@ -1,4 +1,5 @@
 """Flask application factory."""
+# Updated: 2026-02-16 - Added profile picture support
 import os
 import sys
 from pathlib import Path
