@@ -7,6 +7,7 @@ Create Date: 2026-02-16
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.engine.reflection import Inspector
 
 
 # revision identifiers, used by Alembic.
@@ -17,29 +18,52 @@ depends_on = None
 
 
 def upgrade():
-    # Use raw SQL for PostgreSQL compatibility
-    # Make CNIC and email nullable
-    op.execute('ALTER TABLE member_profiles ALTER COLUMN cnic DROP NOT NULL;')
-    op.execute('ALTER TABLE member_profiles ALTER COLUMN email DROP NOT NULL;')
+    # Get connection and check database type
+    conn = op.get_bind()
+    inspector = Inspector.from_engine(conn)
     
-    # Drop unique indexes
-    op.execute('DROP INDEX IF EXISTS ix_member_profiles_cnic;')
-    op.execute('DROP INDEX IF EXISTS ix_member_profiles_email;')
-    
-    # Recreate as non-unique indexes
-    op.execute('CREATE INDEX IF NOT EXISTS ix_member_profiles_cnic ON member_profiles(cnic);')
-    op.execute('CREATE INDEX IF NOT EXISTS ix_member_profiles_email ON member_profiles(email);')
+    # Check if we're using PostgreSQL or SQLite
+    if conn.dialect.name == 'postgresql':
+        # PostgreSQL syntax
+        op.execute('ALTER TABLE member_profiles ALTER COLUMN cnic DROP NOT NULL;')
+        op.execute('ALTER TABLE member_profiles ALTER COLUMN email DROP NOT NULL;')
+        
+        # Drop unique indexes
+        op.execute('DROP INDEX IF EXISTS ix_member_profiles_cnic;')
+        op.execute('DROP INDEX IF EXISTS ix_member_profiles_email;')
+        
+        # Recreate as non-unique indexes
+        op.execute('CREATE INDEX IF NOT EXISTS ix_member_profiles_cnic ON member_profiles(cnic);')
+        op.execute('CREATE INDEX IF NOT EXISTS ix_member_profiles_email ON member_profiles(email);')
+    else:
+        # SQLite - constraints were already fixed manually
+        # Just ensure indexes exist
+        try:
+            op.create_index('ix_member_profiles_cnic', 'member_profiles', ['cnic'], unique=False)
+        except:
+            pass
+        try:
+            op.create_index('ix_member_profiles_email', 'member_profiles', ['email'], unique=False)
+        except:
+            pass
 
 
 def downgrade():
-    # Revert changes using raw SQL
-    op.execute('DROP INDEX IF EXISTS ix_member_profiles_email;')
-    op.execute('DROP INDEX IF EXISTS ix_member_profiles_cnic;')
+    # Get connection and check database type
+    conn = op.get_bind()
     
-    # Recreate as unique indexes
-    op.execute('CREATE UNIQUE INDEX ix_member_profiles_cnic ON member_profiles(cnic);')
-    op.execute('CREATE UNIQUE INDEX ix_member_profiles_email ON member_profiles(email);')
-    
-    # Make columns NOT NULL again
-    op.execute('ALTER TABLE member_profiles ALTER COLUMN cnic SET NOT NULL;')
-    op.execute('ALTER TABLE member_profiles ALTER COLUMN email SET NOT NULL;')
+    if conn.dialect.name == 'postgresql':
+        # Revert changes using raw SQL
+        op.execute('DROP INDEX IF EXISTS ix_member_profiles_email;')
+        op.execute('DROP INDEX IF EXISTS ix_member_profiles_cnic;')
+        
+        # Recreate as unique indexes
+        op.execute('CREATE UNIQUE INDEX ix_member_profiles_cnic ON member_profiles(cnic);')
+        op.execute('CREATE UNIQUE INDEX ix_member_profiles_email ON member_profiles(email);')
+        
+        # Make columns NOT NULL again
+        op.execute('ALTER TABLE member_profiles ALTER COLUMN cnic SET NOT NULL;')
+        op.execute('ALTER TABLE member_profiles ALTER COLUMN email SET NOT NULL;')
+    else:
+        # SQLite - cannot easily revert
+        pass

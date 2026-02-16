@@ -17,10 +17,16 @@ depends_on = None
 
 
 def upgrade():
-    # Add profile_picture column as TEXT (for base64 images)
-    op.execute('ALTER TABLE member_profiles ADD COLUMN profile_picture TEXT;')
+    # Check if column already exists before adding
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('member_profiles')]
+    
+    if 'profile_picture' not in columns:
+        # Add profile_picture column as TEXT (for base64 images)
+        op.add_column('member_profiles', sa.Column('profile_picture', sa.Text(), nullable=True))
 
 
 def downgrade():
     # Remove profile_picture column
-    op.execute('ALTER TABLE member_profiles DROP COLUMN profile_picture;')
+    op.drop_column('member_profiles', 'profile_picture')
