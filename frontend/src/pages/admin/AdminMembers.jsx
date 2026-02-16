@@ -356,16 +356,27 @@ export default function AdminMembers() {
   }
 
   const handleToggleFreeze = async (member) => {
+    const action = member.is_frozen ? 'activate' : 'freeze'
+    const confirmMessage = member.is_frozen 
+      ? `Are you sure you want to activate ${member.full_name}? They will be able to receive transactions again.`
+      : `Are you sure you want to freeze ${member.full_name}? No transactions will be created for them until unfrozen.`
+    
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
     try {
       const newFrozenStatus = !member.is_frozen
+      // Only send the is_frozen field to avoid issues with other fields
       await apiClient.put(`/admin/members/${member.id}`, {
-        ...member,
         is_frozen: newFrozenStatus
       })
       setSuccess(`Member ${newFrozenStatus ? 'frozen' : 'activated'} successfully`)
-      fetchMembers()
+      // Refresh members list to show updated status
+      await fetchMembers()
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update member status')
+      console.error('Toggle freeze error:', err)
     }
   }
 
