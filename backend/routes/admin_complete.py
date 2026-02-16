@@ -140,6 +140,14 @@ def create_member():
                 package_start_date = datetime.utcnow()
                 package_expiry_date = package_start_date + timedelta(days=package.duration_days)
         
+        # Auto-generate member_number starting from 10
+        # Get the highest member_number and increment by 1
+        max_member_number = db.session.query(func.max(MemberProfile.member_number)).scalar()
+        if max_member_number is None or max_member_number < 10:
+            new_member_number = 10
+        else:
+            new_member_number = max_member_number + 1
+        
         # Create member profile
         # Convert empty strings to None for optional fields
         cnic_value = data.get('cnic') if data.get('cnic') else None
@@ -147,6 +155,7 @@ def create_member():
         
         member = MemberProfile(
             user_id=user.id,
+            member_number=new_member_number,
             full_name=data['full_name'],
             phone=data['phone'],
             cnic=cnic_value,  # None if empty
