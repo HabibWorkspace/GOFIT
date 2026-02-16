@@ -355,6 +355,20 @@ export default function AdminMembers() {
     setDeletingMember(null)
   }
 
+  const handleToggleFreeze = async (member) => {
+    try {
+      const newFrozenStatus = !member.is_frozen
+      await apiClient.put(`/admin/members/${member.id}`, {
+        ...member,
+        is_frozen: newFrozenStatus
+      })
+      setSuccess(`Member ${newFrozenStatus ? 'frozen' : 'activated'} successfully`)
+      fetchMembers()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update member status')
+    }
+  }
+
   const handlePrintReceipt = (member) => {
     const payment = memberPayments[member.id]
     if (!payment) {
@@ -1204,13 +1218,14 @@ export default function AdminMembers() {
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Admission</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Package</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Trainer</th>
+                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Status</th>
                   <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-fitnix-charcoal/30">
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center">
+                    <td colSpan="9" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <svg className="w-16 h-16 text-fitnix-off-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -1248,6 +1263,19 @@ export default function AdminMembers() {
                               </div>
                             )}
                           </div>
+                        </td>
+                        <td className="px-6 py-6 text-center">
+                          <button
+                            onClick={() => handleToggleFreeze(member)}
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                              member.is_frozen
+                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30'
+                                : 'bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 hover:bg-fitnix-lime/30'
+                            }`}
+                            title={member.is_frozen ? 'Click to activate' : 'Click to freeze'}
+                          >
+                            {member.is_frozen ? 'Frozen' : 'Active'}
+                          </button>
                         </td>
                         <td className="px-6 py-6">
                           <div className="flex flex-col gap-1.5 items-center">
