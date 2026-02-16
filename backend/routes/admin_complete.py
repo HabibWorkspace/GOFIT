@@ -158,7 +158,8 @@ def create_member():
             trainer_id=data.get('trainer_id') if data.get('trainer_id') else None,
             package_start_date=package_start_date,
             package_expiry_date=package_expiry_date,
-            is_frozen=False
+            is_frozen=False,
+            profile_picture=data.get('profile_picture')
         )
         db.session.add(member)
         db.session.flush()
@@ -245,6 +246,8 @@ def update_member(member_id):
             member.emergency_contact = data['emergency_contact']
         if 'is_frozen' in data:
             member.is_frozen = data['is_frozen']
+        if 'profile_picture' in data:
+            member.profile_picture = data['profile_picture']
         
         # Handle package assignment (accept both package_id and current_package_id)
         if 'package_id' in data:

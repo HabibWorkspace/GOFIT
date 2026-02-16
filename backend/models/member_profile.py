@@ -12,7 +12,7 @@ class MemberProfile(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False, unique=True)
     member_number = db.Column(db.Integer, unique=True, nullable=True)
     full_name = db.Column(db.String(100), nullable=False, default='')
-    phone = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    phone = db.Column(db.String(20), unique=False, nullable=True, index=True)
     cnic = db.Column(db.String(20), unique=False, nullable=True, index=True)
     email = db.Column(db.String(100), unique=False, nullable=True, index=True)
     gender = db.Column(db.String(10))
@@ -24,6 +24,7 @@ class MemberProfile(db.Model):
     package_start_date = db.Column(db.DateTime)
     package_expiry_date = db.Column(db.DateTime)
     is_frozen = db.Column(db.Boolean, default=False, nullable=False)
+    profile_picture = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -53,6 +54,7 @@ class MemberProfile(db.Model):
             'package_start_date': self.package_start_date.isoformat() + 'Z' if self.package_start_date else None,
             'package_expiry_date': self.package_expiry_date.isoformat() + 'Z' if self.package_expiry_date else None,
             'is_frozen': self.is_frozen,
+            'profile_picture': self.profile_picture,
             'created_at': self.created_at.isoformat() + 'Z',
             'updated_at': self.updated_at.isoformat() + 'Z',
         }
