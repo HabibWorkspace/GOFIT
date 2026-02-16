@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    # Make CNIC and email nullable
+    # Make CNIC and email nullable and drop unique indexes
     with op.batch_alter_table('member_profiles', schema=None) as batch_op:
         batch_op.alter_column('cnic',
                               existing_type=sa.String(20),
@@ -25,13 +25,33 @@ def upgrade():
         batch_op.alter_column('email',
                               existing_type=sa.String(100),
                               nullable=True)
-        # Drop unique constraints if they exist
-        # SQLite doesn't support dropping constraints directly, so we skip this
-        # The unique=False in the model will handle it
+    
+    # Drop unique indexes separately (works for both SQLite and PostgreSQL)
+    try:
+        op.drop_index('ix_member_profiles_cnic', table_name='member_profiles')
+    except:
+        pass
+    
+    try:
+        op.drop_index('ix_member_profiles_email', table_name='member_profiles')
+    except:
+        pass
+    
+    # Recreate as non-unique indexes
+    op.create_index('ix_member_profiles_cnic', 'member_profiles', ['cnic'], unique=False)
+    op.create_index('ix_member_profiles_email', 'member_profiles', ['email'], unique=False)
 
 
 def downgrade():
     # Revert changes
+    # Drop non-unique indexes
+    op.drop_index('ix_member_profiles_email', table_name='member_profiles')
+    op.drop_index('ix_member_profiles_cnic', table_name='member_profiles')
+    
+    # Recreate as unique indexes
+    op.create_index('ix_member_profiles_cnic', 'member_profiles', ['cnic'], unique=True)
+    op.create_index('ix_member_profiles_email', 'member_profiles', ['email'], unique=True)
+    
     with op.batch_alter_table('member_profiles', schema=None) as batch_op:
         batch_op.alter_column('cnic',
                               existing_type=sa.String(20),
