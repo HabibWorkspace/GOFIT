@@ -17,6 +17,9 @@ export default function AdminMembers() {
   const [showPassword, setShowPassword] = useState(false)
   const [defaultAdmissionFee, setDefaultAdmissionFee] = useState(0)
   const [deletingMember, setDeletingMember] = useState(null)
+  const [confirmFreeze, setConfirmFreeze] = useState(null)
+  const [profileImage, setProfileImage] = useState(null)
+  const [profileImagePreview, setProfileImagePreview] = useState(null)
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -32,6 +35,7 @@ export default function AdminMembers() {
     final_payable: 0,
     package_id: '',
     trainer_id: '',
+    profile_picture: '',
   })
   const navigate = useNavigate()
 
@@ -212,6 +216,12 @@ export default function AdminMembers() {
           package_start_date: formData.package_start_date,
           package_expiry_date: formData.package_expiry_date,
         }
+        
+        // Add profile picture if changed
+        if (profileImage) {
+          updateData.profile_picture = profileImagePreview
+        }
+        
         const response = await apiClient.put(
           `/admin/members/${editingMember.id}?_t=${Date.now()}`, 
           updateData,
@@ -250,6 +260,7 @@ export default function AdminMembers() {
           trainer_charge: trainerCharge,
           package_id: formData.package_id,
           trainer_id: formData.trainer_id,
+          profile_picture: profileImagePreview || '',
         }
         await apiClient.post('/admin/members', createData)
         setSuccess('Member created successfully')
@@ -311,7 +322,10 @@ export default function AdminMembers() {
         trainer_id: member.trainer_id || '',
         package_start_date: member.package_start_date || '',
         package_expiry_date: member.package_expiry_date || '',
+        profile_picture: member.profile_picture || '',
       })
+      setProfileImagePreview(member.profile_picture || null)
+      setProfileImage(null)
       setShowForm(true)
       setShowPassword(false)
       setError('')
@@ -322,8 +336,36 @@ export default function AdminMembers() {
     })
   }
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB')
+        return
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file')
+        return
+      }
+      
+      setProfileImage(file)
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleCancelEdit = () => {
     setEditingMember(null)
+    setProfileImage(null)
+    setProfileImagePreview(null)
     resetForm()
     setShowForm(false)
     setError('')
@@ -356,28 +398,31 @@ export default function AdminMembers() {
   }
 
   const handleToggleFreeze = async (member) => {
-    const action = member.is_frozen ? 'activate' : 'freeze'
-    const confirmMessage = member.is_frozen 
-      ? `Are you sure you want to activate ${member.full_name}? They will be able to receive transactions again.`
-      : `Are you sure you want to freeze ${member.full_name}? No transactions will be created for them until unfrozen.`
-    
-    if (!window.confirm(confirmMessage)) {
-      return
-    }
+    setConfirmFreeze(member)
+  }
 
+  const confirmToggleFreeze = async () => {
+    if (!confirmFreeze) return
+    
     try {
-      const newFrozenStatus = !member.is_frozen
+      const newFrozenStatus = !confirmFreeze.is_frozen
       // Only send the is_frozen field to avoid issues with other fields
-      await apiClient.put(`/admin/members/${member.id}`, {
+      await apiClient.put(`/admin/members/${confirmFreeze.id}`, {
         is_frozen: newFrozenStatus
       })
       setSuccess(`Member ${newFrozenStatus ? 'frozen' : 'activated'} successfully`)
+      setConfirmFreeze(null)
       // Refresh members list to show updated status
       await fetchMembers()
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update member status')
       console.error('Toggle freeze error:', err)
+      setConfirmFreeze(null)
     }
+  }
+
+  const cancelToggleFreeze = () => {
+    setConfirmFreeze(null)
   }
 
   const handlePrintReceipt = (member) => {
@@ -827,6 +872,36 @@ export default function AdminMembers() {
                 
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Profile Picture
+                  </label>
+                  <div className="flex items-center gap-4">
+                    {profileImagePreview && (
+                      <img 
+                        src={profileImagePreview} 
+                        alt="Profile preview" 
+                        className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-lime"
+                      />
+                    )}
+                    <label className="flex-1 cursor-pointer">
+                      <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-lime/50 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-sm">{profileImage ? profileImage.name : 'Choose image'}</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-fitnix-off-white/50 mt-1">Max 5MB, JPG/PNG</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     Email
                   </label>
                   <input
@@ -1222,6 +1297,7 @@ export default function AdminMembers() {
             <table className="w-full table-auto">
               <thead>
                 <tr className="bg-fitnix-black border-b-2 border-fitnix-lime/30">
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Photo</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Full Name</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Phone</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Gender</th>
@@ -1236,7 +1312,7 @@ export default function AdminMembers() {
               <tbody className="bg-fitnix-charcoal/30">
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-6 py-12 text-center">
+                    <td colSpan="10" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <svg className="w-16 h-16 text-fitnix-off-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -1250,6 +1326,21 @@ export default function AdminMembers() {
                   members.map((member, index) => {
                     return (
                       <tr key={member.id} className={`hover:bg-fitnix-black/50 transition-colors border-b border-fitnix-lime/10 ${index % 2 === 0 ? 'bg-fitnix-charcoal/20' : 'bg-fitnix-charcoal/40'}`}>
+                        <td className="px-6 py-6">
+                          {member.profile_picture ? (
+                            <img 
+                              src={member.profile_picture} 
+                              alt={member.full_name} 
+                              className="w-12 h-12 rounded-full object-cover border-2 border-fitnix-lime"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-fitnix-charcoal border-2 border-fitnix-off-white/20 flex items-center justify-center">
+                              <svg className="w-6 h-6 text-fitnix-off-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{member.full_name || 'N/A'}</td>
                         <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{member.phone}</td>
                         <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{member.gender || 'N/A'}</td>
@@ -1361,6 +1452,71 @@ export default function AdminMembers() {
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-lg"
               >
                 Delete Member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Freeze Confirmation Modal */}
+      {confirmFreeze && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-fitnix-charcoal rounded-2xl shadow-2xl max-w-md w-full p-8 border-2 border-fitnix-lime/30 animate-fade-in">
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className={`rounded-full p-3 ${confirmFreeze.is_frozen ? 'bg-fitnix-lime/20' : 'bg-cyan-500/20'}`}>
+                <svg className={`w-12 h-12 ${confirmFreeze.is_frozen ? 'text-fitnix-lime' : 'text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {confirmFreeze.is_frozen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  )}
+                </svg>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-2xl font-bold text-fitnix-off-white text-center mb-2">
+              {confirmFreeze.is_frozen ? 'Activate Member?' : 'Freeze Member?'}
+            </h3>
+
+            {/* Member Info */}
+            <div className="bg-fitnix-black/50 rounded-lg p-4 mb-4 border border-fitnix-lime/30">
+              <p className="text-fitnix-off-white/80 text-sm mb-2">Member:</p>
+              <p className="text-fitnix-lime font-bold text-lg">{confirmFreeze.full_name}</p>
+              <p className="text-fitnix-off-white/60 text-sm">Phone: {confirmFreeze.phone}</p>
+            </div>
+
+            {/* Warning Message */}
+            <p className="text-fitnix-off-white/80 text-center mb-6">
+              {confirmFreeze.is_frozen ? (
+                <>
+                  This will <span className="text-fitnix-lime font-bold">activate</span> the member and allow transaction creation.
+                </>
+              ) : (
+                <>
+                  This will <span className="text-cyan-400 font-bold">freeze</span> the member. No transactions will be created until they are activated again.
+                </>
+              )}
+            </p>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={cancelToggleFreeze}
+                className="flex-1 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmToggleFreeze}
+                className={`flex-1 font-semibold py-3 px-4 rounded-lg transition shadow-lg ${
+                  confirmFreeze.is_frozen
+                    ? 'bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black'
+                    : 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                }`}
+              >
+                {confirmFreeze.is_frozen ? 'Activate' : 'Freeze'}
               </button>
             </div>
           </div>
