@@ -17,45 +17,29 @@ depends_on = None
 
 
 def upgrade():
-    # Make CNIC and email nullable and drop unique indexes
-    with op.batch_alter_table('member_profiles', schema=None) as batch_op:
-        batch_op.alter_column('cnic',
-                              existing_type=sa.String(20),
-                              nullable=True)
-        batch_op.alter_column('email',
-                              existing_type=sa.String(100),
-                              nullable=True)
+    # Use raw SQL for PostgreSQL compatibility
+    # Make CNIC and email nullable
+    op.execute('ALTER TABLE member_profiles ALTER COLUMN cnic DROP NOT NULL;')
+    op.execute('ALTER TABLE member_profiles ALTER COLUMN email DROP NOT NULL;')
     
-    # Drop unique indexes separately (works for both SQLite and PostgreSQL)
-    try:
-        op.drop_index('ix_member_profiles_cnic', table_name='member_profiles')
-    except:
-        pass
-    
-    try:
-        op.drop_index('ix_member_profiles_email', table_name='member_profiles')
-    except:
-        pass
+    # Drop unique indexes
+    op.execute('DROP INDEX IF EXISTS ix_member_profiles_cnic;')
+    op.execute('DROP INDEX IF EXISTS ix_member_profiles_email;')
     
     # Recreate as non-unique indexes
-    op.create_index('ix_member_profiles_cnic', 'member_profiles', ['cnic'], unique=False)
-    op.create_index('ix_member_profiles_email', 'member_profiles', ['email'], unique=False)
+    op.execute('CREATE INDEX IF NOT EXISTS ix_member_profiles_cnic ON member_profiles(cnic);')
+    op.execute('CREATE INDEX IF NOT EXISTS ix_member_profiles_email ON member_profiles(email);')
 
 
 def downgrade():
-    # Revert changes
-    # Drop non-unique indexes
-    op.drop_index('ix_member_profiles_email', table_name='member_profiles')
-    op.drop_index('ix_member_profiles_cnic', table_name='member_profiles')
+    # Revert changes using raw SQL
+    op.execute('DROP INDEX IF EXISTS ix_member_profiles_email;')
+    op.execute('DROP INDEX IF EXISTS ix_member_profiles_cnic;')
     
     # Recreate as unique indexes
-    op.create_index('ix_member_profiles_cnic', 'member_profiles', ['cnic'], unique=True)
-    op.create_index('ix_member_profiles_email', 'member_profiles', ['email'], unique=True)
+    op.execute('CREATE UNIQUE INDEX ix_member_profiles_cnic ON member_profiles(cnic);')
+    op.execute('CREATE UNIQUE INDEX ix_member_profiles_email ON member_profiles(email);')
     
-    with op.batch_alter_table('member_profiles', schema=None) as batch_op:
-        batch_op.alter_column('cnic',
-                              existing_type=sa.String(20),
-                              nullable=False)
-        batch_op.alter_column('email',
-                              existing_type=sa.String(100),
-                              nullable=False)
+    # Make columns NOT NULL again
+    op.execute('ALTER TABLE member_profiles ALTER COLUMN cnic SET NOT NULL;')
+    op.execute('ALTER TABLE member_profiles ALTER COLUMN email SET NOT NULL;')
