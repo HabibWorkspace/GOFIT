@@ -13,6 +13,7 @@ export default function AdminFinance() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showPrintModal, setShowPrintModal] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
 
   // Filter states
@@ -38,10 +39,33 @@ export default function AdminFinance() {
   // Apply filters whenever transactions or filter values change
   useEffect(() => {
     applyFilters()
-  }, [transactions, selectedMember, selectedStatus, selectedMonth])
+  }, [transactions, selectedMember, selectedStatus, selectedMonth, searchQuery])
 
   const applyFilters = () => {
     let filtered = [...transactions]
+
+    // Filter by search query (name, month, status)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(t => {
+        // Search by member name
+        if (t.full_name && t.full_name.toLowerCase().includes(query)) {
+          return true
+        }
+        // Search by status
+        if (t.status && t.status.toLowerCase().includes(query)) {
+          return true
+        }
+        // Search by month name in due_date
+        if (t.due_date) {
+          const monthName = new Date(t.due_date).toLocaleDateString('en-US', { month: 'long' }).toLowerCase()
+          if (monthName.includes(query)) {
+            return true
+          }
+        }
+        return false
+      })
+    }
 
     // Filter by member
     if (selectedMember !== 'all') {
@@ -67,10 +91,25 @@ export default function AdminFinance() {
     setFilteredTransactions(filtered)
   }
 
+  const handleSearch = () => {
+    applyFilters()
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery('')
+  }
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
+
   const handleResetFilters = () => {
     setSelectedMember('all')
     setSelectedStatus('all')
     setSelectedMonth('')
+    setSearchQuery('')
   }
 
   const fetchData = async () => {
@@ -523,6 +562,44 @@ export default function AdminFinance() {
             </div>
           </div>
         )}
+
+        {/* Search Bar */}
+        <div className="fitnix-card mb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-fitnix-off-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by member name, month, or status... (Press Enter or click Go)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+                className="w-full pl-12 pr-4 py-3 bg-fitnix-charcoal border border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-lime focus:ring-1 focus:ring-fitnix-lime transition-colors"
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              className="px-6 py-3 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black font-semibold rounded-lg transition-colors"
+            >
+              Go
+            </button>
+            <button
+              onClick={handleClearSearch}
+              className="px-6 py-3 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold rounded-lg border border-fitnix-off-white/20 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+          {searchQuery && (
+            <p className="mt-3 text-sm text-fitnix-off-white/60">
+              Showing {filteredTransactions.length} of {transactions.length} transactions
+            </p>
+          )}
+        </div>
 
         {/* Filter Section */}
         <div className="fitnix-card-glow p-6">
