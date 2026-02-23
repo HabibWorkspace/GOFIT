@@ -39,11 +39,20 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
-    # Fix for Render PostgreSQL URL (postgres:// -> postgresql://)
+    # Support both Render and Supabase PostgreSQL URLs
     database_url = os.getenv('DATABASE_URL', 'postgresql://localhost/fitnix')
-    if database_url.startswith('postgres://'):
+    
+    # Fix for both postgres:// and postgresql:// formats
+    if database_url.startswith('postgres://') and not database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
     SQLALCHEMY_DATABASE_URI = database_url
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_size': 10,
+        'max_overflow': 20
+    }
 
 
 class TestingConfig(Config):

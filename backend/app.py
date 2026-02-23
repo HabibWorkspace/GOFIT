@@ -66,7 +66,9 @@ def create_app(config=None):
                  "http://127.0.0.1:5000", 
                  "http://127.0.0.1:5173",
                  "https://habibworkspace.github.io",
-                 "https://habibworkspace.github.io/MODERN-FITNESS-GYM"
+                 "https://habibworkspace.github.io/MODERN-FITNESS-GYM",
+                 os.getenv('FRONTEND_URL', ''),
+                 "https://*.vercel.app"
              ],
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With", "Pragma", "Expires", "If-None-Match", "If-Modified-Since"],

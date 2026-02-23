@@ -1,4 +1,5 @@
 # FitCore Admin Panel - Backend Dependencies
+# For Vercel + Supabase Deployment
 
 # Core Flask Framework
 Flask==3.0.0
@@ -7,10 +8,9 @@ Flask-JWT-Extended>=4.6.0
 Flask-CORS==4.0.0
 Flask-Mail==0.9.1
 
-# Database
+# Database (PostgreSQL for Supabase)
 SQLAlchemy>=2.0.23
-alembic>=1.13.0
-psycopg2>=2.9.0
+psycopg2-binary>=2.9.0
 
 # Security & Authentication
 bcrypt==4.1.2
@@ -25,10 +25,5 @@ Pillow>=9.0.0
 requests==2.31.0
 python-dateutil>=2.8.2
 
-# Production Server
-gunicorn==21.2.0
-
-# Testing
-pytest>=7.4.2
-pytest-cov>=4.1.0
-hypothesis>=6.82.0
+# Production Server (for local testing, not used in Vercel)
+gunicorn>=21.2.0
