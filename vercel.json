@@ -1,8 +1,11 @@
 {
   "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "pip install -r backend/requirements.txt",
   "builds": [
     {
-      "src": "backend/app.py",
+      "src": "backend/api/index.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb"
@@ -12,23 +15,21 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "frontend/dist"
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/app.py"
+      "dest": "/backend/api/index.py"
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/$1"
+      "dest": "/frontend/dist/$1"
     }
   ],
   "env": {
-    "FLASK_ENV": "production",
     "PYTHONUNBUFFERED": "1"
-  },
-  "regions": ["iad1"]
+  }
 }

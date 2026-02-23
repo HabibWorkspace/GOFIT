@@ -1,16 +1,18 @@
-"""Vercel serverless function entry point."""
+"""Vercel serverless function entry point for Flask app."""
 import sys
 import os
+from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# Add parent directory to path to import app module
+backend_path = str(Path(__file__).parent.parent)
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
 
-from app import app
+# Import and create Flask app
+from app import create_app
 
-# Vercel expects a handler function
-def handler(request, context):
-    """Handle Vercel serverless requests."""
-    return app(request, context)
+# Create Flask app instance
+app = create_app()
 
-# For Vercel
-app = app
+# Vercel expects 'app' to be the WSGI application
+# No need for custom handler - Vercel handles WSGI automatically
