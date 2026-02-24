@@ -29,7 +29,7 @@ function App() {
   }, [])
 
   return (
-    <Router basename="/MODERN-FITNESS-GYM" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {!isOnline && <OfflineIndicator />}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
