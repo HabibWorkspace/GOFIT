@@ -109,21 +109,26 @@ def create_app(config=None):
             'message': 'FitCore backend is running'
         }), 200
     
-    # Serve frontend static files
+    # Serve frontend static files (must be after API routes)
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve_frontend(path):
         """Serve frontend files for SPA routing."""
+        from flask import send_from_directory
         import os
+        
+        # Don't serve frontend for API routes
+        if path.startswith('api/'):
+            return jsonify({'error': 'Not found', 'path': request.path}), 404
+        
         frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'dist')
         
-        # If path is empty or doesn't exist, serve index.html
-        if path == '' or not os.path.exists(os.path.join(frontend_dir, path)):
-            return app.send_static_file('index.html') if os.path.exists(os.path.join(app.static_folder or '', 'index.html')) else send_from_directory(frontend_dir, 'index.html')
+        # If requesting a file that exists, serve it
+        if path and os.path.exists(os.path.join(frontend_dir, path)):
+            return send_from_directory(frontend_dir, path)
         
-        # Serve the requested file
-        from flask import send_from_directory
-        return send_from_directory(frontend_dir, path)
+        # Otherwise serve index.html for SPA routing
+        return send_from_directory(frontend_dir, 'index.html')
     
     # Add catch-all 404 handler
     @app.errorhandler(404)
