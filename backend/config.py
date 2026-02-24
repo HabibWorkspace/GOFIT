@@ -39,19 +39,18 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
-    # Support both Render and Supabase PostgreSQL URLs
-    database_url = os.getenv('DATABASE_URL', 'postgresql://localhost/fitnix')
+    # Use absolute path for SQLite on PythonAnywhere
+    import os
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    database_path = os.path.join(base_dir, 'instance', 'fitnix.db')
     
-    # Fix for both postgres:// and postgresql:// formats
-    if database_url.startswith('postgres://') and not database_url.startswith('postgresql://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    # Ensure instance directory exists
+    os.makedirs(os.path.dirname(database_path), exist_ok=True)
     
-    SQLALCHEMY_DATABASE_URI = database_url
+    SQLALCHEMY_DATABASE_URI = f'sqlite:///{database_path}'
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
-        'pool_size': 10,
-        'max_overflow': 20
     }
 
 
