@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import logo from '/fitcore-logo.png'
-import modernLogo from '/modern-fitness-logo.png'
 
 export default function AdminMembers() {
   const [members, setMembers] = useState([])
@@ -730,9 +729,7 @@ export default function AdminMembers() {
       </head>
       <body>
         <div class="header">
-          <img src="https://habibworkspace.github.io/MODERN-FITNESS-GYM/modern-fitness-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
-          <h1 class="gym-name">Modern Fitness Gym</h1>
-          <p class="receipt-title">Payment Receipt</p>
+          <img src="https://habibworkspace.github.io/MODERN-FITNESS-GYM/fitcore-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
           <p class="receipt-date">Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
 
@@ -802,9 +799,7 @@ export default function AdminMembers() {
         </div>
 
           <div class="footer">
-            <p style="font-size: 26px; margin-bottom: 15px; font-weight: 600;">Thank you for your payment!</p>
-            <p style="font-size: 28px; font-weight: 600;">For any queries, please contact us at the gym reception.</p>
-            <p style="margin-top: 20px; font-size: 32px;"><strong>Modern Fitness Gym</strong> - Your Fitness Partner</p>
+            <p style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Thank You</p>
           </div>
         </body>
       </html>
@@ -1507,15 +1502,10 @@ export default function AdminMembers() {
                           <div className="flex items-center gap-2">
                             <span>{member.full_name || 'N/A'}</span>
                             {isNewMember(member.admission_date) && (
-                              <div className="flex flex-col items-start gap-1">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse">
-                                  <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
-                                  New Member
-                                </span>
-                                <span className="text-xs text-fitnix-off-white/60">
-                                  {formatAdmissionDate(member.admission_date)}
-                                </span>
-                              </div>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse">
+                                <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
+                                New Member
+                              </span>
                             )}
                           </div>
                         </td>
