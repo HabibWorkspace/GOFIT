@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import logo from '/fitcore-logo.png'
-import modernLogo from '/modern-fitness-logo.png'
 
 export default function AdminFinance() {
   const [transactions, setTransactions] = useState([])
@@ -114,6 +113,10 @@ export default function AdminFinance() {
   }
 
   const getOverdueStatus = (transaction) => {
+    // Check if member is frozen
+    const member = members[transaction.member_id]
+    if (member && member.is_frozen) return 'FROZEN'
+    
     if (transaction.status === 'COMPLETED') return 'COMPLETED'
     if (!transaction.due_date) return transaction.status
     
@@ -392,11 +395,10 @@ export default function AdminFinance() {
             margin: 2px 0;
           }
           .footer-thank-you {
-            font-weight: 900;
-            font-size: 14px;
-            margin: 6px 0 4px 0;
+            font-weight: 700;
+            font-size: 11px;
+            margin: 4px 0;
             letter-spacing: 0.5px;
-            text-transform: uppercase;
           }
           .footer-brand {
             font-weight: 900;
@@ -425,9 +427,7 @@ export default function AdminFinance() {
         </div>
 
         <div class="header">
-          <img src="https://habibworkspace.github.io/MODERN-FITNESS-GYM/modern-fitness-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
-          <div class="gym-name">Modern Fitness Gym</div>
-          <div class="receipt-title">Payment Receipt</div>
+          <img src="https://habibworkspace.github.io/MODERN-FITNESS-GYM/fitcore-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
         </div>
 
         <div class="section">
@@ -524,9 +524,7 @@ export default function AdminFinance() {
         </div>
 
         <div class="footer">
-          <div class="footer-thank-you">THANK YOU</div>
-          <p>For any queries, please contact us at the gym reception.</p>
-          <div class="footer-brand">MODERN FITNESS GYM - Ladies & Gents</div>
+          <div class="footer-thank-you">Thank You</div>
         </div>
       </body>
       </html>
@@ -720,15 +718,10 @@ export default function AdminFinance() {
                           <div className="flex items-center gap-2">
                             <span>{memberName}</span>
                             {isNewMember(transaction.member_id) && (
-                              <div className="flex flex-col items-start gap-1">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse">
-                                  <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
-                                  New Member
-                                </span>
-                                <span className="text-xs text-fitnix-off-white/60">
-                                  {formatAdmissionDate(members[transaction.member_id]?.admission_date)}
-                                </span>
-                              </div>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse">
+                                <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
+                                New Member
+                              </span>
                             )}
                           </div>
                         </td>
@@ -777,6 +770,12 @@ export default function AdminFinance() {
                                     </button>
                                   )}
                                 </div>
+                              )
+                            } else if (status === 'FROZEN') {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-blue-900/30 text-blue-400 border-blue-500 whitespace-nowrap">
+                                  FROZEN
+                                </span>
                               )
                             } else if (status === 'OVERDUE') {
                               return (

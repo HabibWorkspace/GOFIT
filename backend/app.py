@@ -16,13 +16,11 @@ load_dotenv(dotenv_path=env_path)
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-from flask_mail import Mail
 from database import db
 from config import get_config
 
 # Initialize extensions
 jwt = JWTManager()
-mail = Mail()
 
 
 def create_app(config=None):
@@ -45,7 +43,6 @@ def create_app(config=None):
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
-    mail.init_app(app)
     
     # Debug: Log email configuration
     app.logger.info(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
@@ -53,26 +50,13 @@ def create_app(config=None):
     app.logger.info(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
     app.logger.info(f"MAIL_PASSWORD: {'*' * len(app.config.get('MAIL_PASSWORD', '')) if app.config.get('MAIL_PASSWORD') else 'NOT SET'}")
     
-    # Configure CORS - COMPREHENSIVE CONFIGURATION
+    # Configure CORS - Allow all origins for local development
     CORS(app, 
          resources={r"/api/*": {
-             "origins": [
-                 "http://localhost:3000", 
-                 "http://localhost:3001",
-                 "http://localhost:5000", 
-                 "http://localhost:5173", 
-                 "http://127.0.0.1:3000", 
-                 "http://127.0.0.1:3001",
-                 "http://127.0.0.1:5000", 
-                 "http://127.0.0.1:5173",
-                 "https://habibworkspace.github.io",
-                 "https://habibworkspace.github.io/MODERN-FITNESS-GYM",
-                 os.getenv('FRONTEND_URL', ''),
-                 "https://*.vercel.app"
-             ],
+             "origins": "*",
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With", "Pragma", "Expires", "If-None-Match", "If-Modified-Since"],
-             "supports_credentials": True,
+             "supports_credentials": False,
              "expose_headers": ["Content-Type", "Authorization"],
              "max_age": 3600
          }})
