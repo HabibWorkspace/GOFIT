@@ -490,6 +490,15 @@ export default function AdminMembers() {
     return new Date(admissionDate) > oneMonthAgo
   }
 
+  const formatAdmissionDate = (admissionDate) => {
+    if (!admissionDate) return ''
+    const date = new Date(admissionDate)
+    const day = date.getDate()
+    const month = date.toLocaleDateString('en-US', { month: 'short' })
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
   const handleClearSearch = () => {
     setSearchQuery('')
     setFilteredMembers(members)
@@ -1102,6 +1111,21 @@ export default function AdminMembers() {
                     </select>
                   </div>
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Admission Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.admission_date}
+                    onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
+                    className="fitnix-input"
+                  />
+                  <p className="text-xs text-fitnix-off-white/50 mt-1">
+                    Date when member joined the gym
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1483,9 +1507,15 @@ export default function AdminMembers() {
                           <div className="flex items-center gap-2">
                             <span>{member.full_name || 'N/A'}</span>
                             {isNewMember(member.admission_date) && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50">
-                                New Member
-                              </span>
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse">
+                                  <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
+                                  New Member
+                                </span>
+                                <span className="text-xs text-fitnix-off-white/60">
+                                  {formatAdmissionDate(member.admission_date)}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </td>
