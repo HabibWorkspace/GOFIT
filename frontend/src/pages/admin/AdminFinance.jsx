@@ -104,6 +104,50 @@ export default function AdminFinance() {
     return new Date(member.admission_date) > oneMonthAgo
   }
 
+  const formatAdmissionDate = (admissionDate) => {
+    if (!admissionDate) return ''
+    const date = new Date(admissionDate)
+    const day = date.getDate()
+    const month = date.toLocaleDateString('en-US', { month: 'short' })
+    const year = date.getFullYear()
+    return `${day} ${month} ${year}`
+  }
+
+  const getOverdueStatus = (transaction) => {
+    if (transaction.status === 'COMPLETED') return 'COMPLETED'
+    if (!transaction.due_date) return transaction.status
+    
+    const dueDate = new Date(transaction.due_date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    dueDate.setHours(0, 0, 0, 0)
+    
+    const diffTime = today - dueDate
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays <= 0) return 'PENDING'
+    if (diffDays <= 3) return `GRACE_DAY_${diffDays}`
+    return 'OVERDUE'
+  }
+
+  const handleWhatsAppContact = (transaction) => {
+    const member = members[transaction.member_id]
+    if (!member || !member.phone) {
+      setError('Member phone number not available')
+      return
+    }
+    
+    const phone = member.phone.replace(/[^0-9]/g, '')
+    const memberName = member.full_name || member.username
+    const amount = parseFloat(transaction.amount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 })
+    const dueDate = new Date(transaction.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    
+    const message = `Dear ${memberName},\n\nThis is a reminder that your gym membership payment of Rs. ${amount} was due on ${dueDate}.\n\nPlease make the payment at your earliest convenience to continue enjoying our services.\n\nThank you!\nModern Fitness Gym`
+    
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+    window.open(whatsappUrl, '_blank')
+  }
+
   const handleSearch = () => {
     applyFilters()
   }
@@ -676,9 +720,15 @@ export default function AdminFinance() {
                           <div className="flex items-center gap-2">
                             <span>{memberName}</span>
                             {isNewMember(transaction.member_id) && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50">
-                                New Member
-                              </span>
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse">
+                                  <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
+                                  New Member
+                                </span>
+                                <span className="text-xs text-fitnix-off-white/60">
+                                  {formatAdmissionDate(members[transaction.member_id]?.admission_date)}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -698,15 +748,50 @@ export default function AdminFinance() {
                           </div>
                         </td>
                         <td className="px-6 py-6 text-center">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
-                            transaction.status === 'COMPLETED' 
-                              ? 'bg-fitnix-black text-emerald-400 border-emerald-500' 
-                              : transaction.status === 'OVERDUE'
-                              ? 'bg-red-900/30 text-red-400 border-red-500'
-                              : 'bg-fitnix-black text-amber-400 border-amber-500'
-                          }`}>
-                            {transaction.status}
-                          </span>
+                          {(() => {
+                            const status = getOverdueStatus(transaction)
+                            
+                            if (status === 'COMPLETED') {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-fitnix-black text-emerald-400 border-emerald-500 whitespace-nowrap">
+                                  COMPLETED
+                                </span>
+                              )
+                            } else if (status.startsWith('GRACE_DAY_')) {
+                              const day = status.split('_')[2]
+                              return (
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-amber-900/30 text-amber-400 border-amber-500 whitespace-nowrap animate-pulse">
+                                    Grace Day {day}/3
+                                  </span>
+                                  {day === '2' && (
+                                    <button
+                                      onClick={() => handleWhatsAppContact(transaction)}
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-green-600 hover:bg-green-700 text-white transition-colors"
+                                      title="Contact via WhatsApp"
+                                    >
+                                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                      </svg>
+                                      Contact
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            } else if (status === 'OVERDUE') {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-red-900/30 text-red-400 border-red-500 whitespace-nowrap">
+                                  OVERDUE
+                                </span>
+                              )
+                            } else {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border bg-fitnix-black text-amber-400 border-amber-500 whitespace-nowrap">
+                                  PENDING
+                                </span>
+                              )
+                            }
+                          })()}
                         </td>
                         <td className="px-6 py-6">
                           <div className="flex flex-col gap-1.5 items-center">
