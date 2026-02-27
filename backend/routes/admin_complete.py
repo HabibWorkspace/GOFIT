@@ -12,8 +12,6 @@ from database import db
 from datetime import datetime, timedelta
 from sqlalchemy import func
 import uuid
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill
 from io import BytesIO
 
 admin_complete_bp = Blueprint('admin_complete', __name__)
@@ -64,6 +62,10 @@ def list_members():
 def export_members_excel():
     """Export all members to Excel file."""
     try:
+        # Lazy import openpyxl only when needed
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        
         # Get all members
         all_members = MemberProfile.query.all()
         
