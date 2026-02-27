@@ -64,40 +64,55 @@ def export_members_excel():
     try:
         # Lazy import openpyxl only when needed
         from openpyxl import Workbook
-        from openpyxl.styles import Font, Alignment, PatternFill
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
         
-        # Get all members
-        all_members = MemberProfile.query.all()
+        # Get all members sorted by member_number
+        all_members = MemberProfile.query.order_by(MemberProfile.member_number).all()
         
         # Create workbook
         wb = Workbook()
         ws = wb.active
-        ws.title = "Members"
+        ws.title = "Members List"
         
-        # Define headers
+        # Define headers (only essential columns)
         headers = [
-            'ID', 'Member Number', 'Full Name', 'Username', 'Phone', 'CNIC', 'Email',
-            'Gender', 'Date of Birth', 'Admission Date', 'Admission Fee Paid',
-            'Current Package', 'Trainer', 'Package Start Date', 'Package Expiry Date',
-            'Is Frozen', 'Created At', 'Updated At'
+            'Member ID', 'Full Name', 'Phone', 'Email', 'Gender', 
+            'Date of Birth', 'Admission Date', 'Current Package', 'Trainer'
         ]
         
-        # Style headers
+        # Style for headers
         header_fill = PatternFill(start_color='B6FF00', end_color='B6FF00', fill_type='solid')
-        header_font = Font(bold=True, size=12)
+        header_font = Font(bold=True, size=12, color='000000')
+        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        border = Border(
+            left=Side(style='thin', color='000000'),
+            right=Side(style='thin', color='000000'),
+            top=Side(style='thin', color='000000'),
+            bottom=Side(style='thin', color='000000')
+        )
         
+        # Add title row
+        ws.merge_cells('A1:I1')
+        title_cell = ws['A1']
+        title_cell.value = 'MODERN FITNESS GYM - MEMBERS LIST'
+        title_cell.font = Font(bold=True, size=16, color='000000')
+        title_cell.alignment = Alignment(horizontal='center', vertical='center')
+        title_cell.fill = PatternFill(start_color='B6FF00', end_color='B6FF00', fill_type='solid')
+        ws.row_dimensions[1].height = 30
+        
+        # Add headers in row 2
         for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_num, value=header)
+            cell = ws.cell(row=2, column=col_num, value=header)
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.alignment = header_alignment
+            cell.border = border
         
-        # Add data rows
-        for row_num, member in enumerate(all_members, 2):
+        ws.row_dimensions[2].height = 25
+        
+        # Add data rows starting from row 3
+        for row_num, member in enumerate(all_members, 3):
             # Get related data
-            user = User.query.get(member.user_id)
-            username = user.username if user else 'N/A'
-            
             package = Package.query.get(member.current_package_id) if member.current_package_id else None
             package_name = package.name if package else 'Not Assigned'
             
@@ -105,51 +120,47 @@ def export_members_excel():
             trainer_name = trainer.full_name if trainer else 'Not Assigned'
             
             # Format dates
-            dob = member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else 'N/A'
-            admission = member.admission_date.strftime('%Y-%m-%d') if member.admission_date else 'N/A'
-            pkg_start = member.package_start_date.strftime('%Y-%m-%d %H:%M:%S') if member.package_start_date else 'N/A'
-            pkg_expiry = member.package_expiry_date.strftime('%Y-%m-%d %H:%M:%S') if member.package_expiry_date else 'N/A'
-            created = member.created_at.strftime('%Y-%m-%d %H:%M:%S') if member.created_at else 'N/A'
-            updated = member.updated_at.strftime('%Y-%m-%d %H:%M:%S') if member.updated_at else 'N/A'
+            dob = member.date_of_birth.strftime('%d-%b-%Y') if member.date_of_birth else 'N/A'
+            admission = member.admission_date.strftime('%d-%b-%Y') if member.admission_date else 'N/A'
             
             # Write row data
             row_data = [
-                member.id,
                 member.member_number or 'N/A',
                 member.full_name or 'N/A',
-                username,
                 member.phone or 'N/A',
-                member.cnic or 'N/A',
                 member.email or 'N/A',
                 member.gender or 'N/A',
                 dob,
                 admission,
-                'Yes' if member.admission_fee_paid else 'No',
                 package_name,
-                trainer_name,
-                pkg_start,
-                pkg_expiry,
-                'Yes' if member.is_frozen else 'No',
-                created,
-                updated
+                trainer_name
             ]
+            
+            # Alternate row colors
+            row_fill = PatternFill(start_color='F0F0F0', end_color='F0F0F0', fill_type='solid') if row_num % 2 == 0 else PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
             
             for col_num, value in enumerate(row_data, 1):
                 cell = ws.cell(row=row_num, column=col_num, value=value)
                 cell.alignment = Alignment(horizontal='left', vertical='center')
+                cell.border = border
+                cell.fill = row_fill
+                cell.font = Font(size=11)
         
-        # Auto-adjust column widths
-        for column in ws.columns:
-            max_length = 0
-            column_letter = column[0].column_letter
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)
-            ws.column_dimensions[column_letter].width = adjusted_width
+        # Set column widths
+        column_widths = {
+            'A': 12,  # Member ID
+            'B': 25,  # Full Name
+            'C': 15,  # Phone
+            'D': 25,  # Email
+            'E': 10,  # Gender
+            'F': 15,  # DOB
+            'G': 15,  # Admission Date
+            'H': 20,  # Package
+            'I': 20   # Trainer
+        }
+        
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
         
         # Save to BytesIO
         output = BytesIO()
@@ -157,7 +168,7 @@ def export_members_excel():
         output.seek(0)
         
         # Generate filename with timestamp
-        filename = f"members_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        filename = f"Modern_Fitness_Members_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         
         return send_file(
             output,

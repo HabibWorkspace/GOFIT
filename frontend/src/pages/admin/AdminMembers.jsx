@@ -737,6 +737,10 @@ export default function AdminMembers() {
           <div class="info-section">
             <h3>Member Information</h3>
             <div class="info-row">
+              <span class="info-label">Member ID:</span>
+              <span class="info-value">${member.member_number || 'N/A'}</span>
+            </div>
+            <div class="info-row">
               <span class="info-label">Name:</span>
               <span class="info-value">${member.full_name || member.username}</span>
             </div>

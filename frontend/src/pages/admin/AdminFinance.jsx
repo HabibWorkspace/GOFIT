@@ -433,6 +433,10 @@ export default function AdminFinance() {
         <div class="section">
           <div class="section-title">Member Information</div>
           <div class="row">
+            <span class="label">Member ID:</span>
+            <span class="value">${member.member_number || 'N/A'}</span>
+          </div>
+          <div class="row">
             <span class="label">Name:</span>
             <span class="value">${member.full_name || member.username}</span>
           </div>
