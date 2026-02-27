@@ -729,7 +729,7 @@ export default function AdminMembers() {
       </head>
       <body>
         <div class="header">
-          <img src="https://habibworkspace.github.io/MODERN-FITNESS-GYM/fitcore-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
+          <img src="/modern-fitness-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
           <p class="receipt-date">Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
 
