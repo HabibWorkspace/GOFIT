@@ -17,6 +17,9 @@ export default function AdminFinance() {
   const [sortField, setSortField] = useState('due_date')
   const [sortDirection, setSortDirection] = useState('desc')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportMonth, setExportMonth] = useState('')
+  const [allTransactions, setAllTransactions] = useState([]) // Store all transactions
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -91,6 +94,17 @@ export default function AdminFinance() {
     setFilteredTransactions(filtered)
   }
 
+  const filterLast3Months = (transactionsList) => {
+    const threeMonthsAgo = new Date()
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+    
+    return transactionsList.filter(t => {
+      if (!t.due_date) return true
+      const dueDate = new Date(t.due_date)
+      return dueDate >= threeMonthsAgo
+    })
+  }
+
   const handleSort = (field) => {
     const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc'
     setSortField(field)
@@ -99,7 +113,12 @@ export default function AdminFinance() {
     const sorted = [...filteredTransactions].sort((a, b) => {
       let aVal, bVal
       
-      if (field === 'member_name') {
+      if (field === 'member_id') {
+        const aMember = members[a.member_id]
+        const bMember = members[b.member_id]
+        aVal = aMember ? (aMember.member_number || 0) : 0
+        bVal = bMember ? (bMember.member_number || 0) : 0
+      } else if (field === 'member_name') {
         const aMember = members[a.member_id]
         const bMember = members[b.member_id]
         aVal = (aMember ? (aMember.full_name || aMember.username) : '').toLowerCase()
@@ -199,7 +218,13 @@ export default function AdminFinance() {
         apiClient.get(`/admin/members${cacheParam}`)
       ])
       
-      setTransactions(paymentsRes.data.payments || [])
+      const allPayments = paymentsRes.data.payments || []
+      setAllTransactions(allPayments) // Store all transactions for export
+      
+      // Filter to show only last 3 months by default
+      const last3MonthsPayments = filterLast3Months(allPayments)
+      setTransactions(last3MonthsPayments)
+      
       setPackages(packagesRes.data.packages || [])
       
       // Create a map of member_id to full member info
@@ -577,6 +602,70 @@ export default function AdminFinance() {
     navigate('/login')
   }
 
+  const handleExportExcel = async () => {
+    try {
+      let transactionsToExport = allTransactions
+      
+      // Filter by selected month if specified
+      if (exportMonth) {
+        const [year, month] = exportMonth.split('-')
+        transactionsToExport = allTransactions.filter(t => {
+          if (!t.due_date) return false
+          const dueDate = new Date(t.due_date)
+          return dueDate.getFullYear() === parseInt(year) && 
+                 (dueDate.getMonth() + 1) === parseInt(month)
+        })
+      }
+      
+      if (transactionsToExport.length === 0) {
+        setError('No transactions found for the selected period')
+        return
+      }
+      
+      // Create export data
+      const exportData = transactionsToExport.map(t => {
+        const member = members[t.member_id]
+        const status = getOverdueStatus(t)
+        
+        return {
+          member_id: member ? member.member_number : 'N/A',
+          member_name: t.full_name || 'N/A',
+          phone: member ? member.phone : 'N/A',
+          amount: t.amount,
+          due_date: t.due_date,
+          paid_date: t.paid_date,
+          status: status,
+          transaction_type: t.transaction_type
+        }
+      })
+      
+      // Send to backend for Excel generation
+      const response = await apiClient.post('/admin/finance/export', {
+        transactions: exportData,
+        month: exportMonth
+      }, {
+        responseType: 'blob'
+      })
+      
+      // Download the file
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      const monthName = exportMonth ? new Date(exportMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'All'
+      link.setAttribute('download', `Finance_Report_${monthName.replace(' ', '_')}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      
+      setSuccess('Finance report exported successfully')
+      setShowExportModal(false)
+      setExportMonth('')
+    } catch (err) {
+      setError('Failed to export finance report')
+      console.error('Export error:', err)
+    }
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-fitnix-black flex items-center justify-center z-50">
@@ -610,12 +699,25 @@ export default function AdminFinance() {
     <AdminLayout onLogout={handleLogout}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-fitnix-off-white">
-            Finance <span className="fitnix-gradient-text">Management</span>
-          </h1>
-          <p className="text-fitnix-off-white/60 mt-2">
-            Track payments and manage financial transactions
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-fitnix-off-white">
+                Finance <span className="fitnix-gradient-text">Management</span>
+              </h1>
+              <p className="text-fitnix-off-white/60 mt-2">
+                Track payments and manage financial transactions (Last 3 months)
+              </p>
+            </div>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="px-6 py-3 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black font-bold rounded-xl transition-all hover:scale-105 shadow-lg flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export to Excel
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -738,7 +840,17 @@ export default function AdminFinance() {
             <table className="w-full">
               <thead>
                 <tr className="bg-fitnix-black border-b-2 border-fitnix-lime/30">
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/12">ID</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/12">
+                    <button 
+                      onClick={() => handleSort('member_id')}
+                      className="flex items-center gap-2 hover:text-fitnix-dark-lime transition-colors"
+                    >
+                      ID
+                      {sortField === 'member_id' && (
+                        <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/6">Month</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/4">
                     <button 
@@ -913,15 +1025,21 @@ export default function AdminFinance() {
                                 </button>
                               )
                             ) : (
-                              <button
-                                onClick={() => handlePrintReceipt(transaction)}
-                                className="w-20 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500 px-2 py-1 rounded-md transition-all font-semibold text-xs shadow-md hover:scale-105 flex items-center justify-center gap-1 whitespace-nowrap"
-                              >
-                                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                </svg>
-                                Print
-                              </button>
+                              member && member.is_frozen ? (
+                                <span className="text-xs text-blue-400 font-semibold px-2 py-1 bg-blue-900/20 rounded-md border border-blue-500/30">
+                                  Frozen
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handlePrintReceipt(transaction)}
+                                  className="w-20 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500 px-2 py-1 rounded-md transition-all font-semibold text-xs shadow-md hover:scale-105 flex items-center justify-center gap-1 whitespace-nowrap"
+                                >
+                                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                  </svg>
+                                  Print
+                                </button>
+                              )
                             )}
                           </div>
                         </td>
@@ -969,6 +1087,62 @@ export default function AdminFinance() {
                   className="flex-1 bg-fitnix-black hover:bg-fitnix-black/80 text-fitnix-off-white font-bold py-3 px-6 rounded-xl transition-all border-2 border-fitnix-off-white/20 hover:border-fitnix-off-white/40 uppercase tracking-wide"
                 >
                   Skip
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Export Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-fitnix-charcoal border-2 border-fitnix-lime rounded-2xl p-8 max-w-md w-full shadow-2xl shadow-fitnix-lime/20">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-fitnix-lime rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-fitnix-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-fitnix-off-white mb-3 text-center">Export Finance Report</h3>
+              <p className="text-fitnix-off-white/60 text-center mb-6">
+                Select a month to export or leave blank for all transactions
+              </p>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-fitnix-off-white mb-2">
+                  Select Month (Optional)
+                </label>
+                <input
+                  type="month"
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(e.target.value)}
+                  className="w-full px-4 py-3 bg-fitnix-black border border-fitnix-off-white/20 rounded-lg text-fitnix-off-white focus:outline-none focus:border-fitnix-lime focus:ring-1 focus:ring-fitnix-lime transition-colors"
+                />
+                <p className="text-xs text-fitnix-off-white/40 mt-2">
+                  Leave blank to export all transactions
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleExportExcel}
+                  className="flex-1 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black font-bold py-3 px-6 rounded-xl transition-all hover:scale-105 shadow-lg hover:shadow-fitnix-lime/50 uppercase tracking-wide flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportModal(false)
+                    setExportMonth('')
+                  }}
+                  className="flex-1 bg-fitnix-black hover:bg-fitnix-black/80 text-fitnix-off-white font-bold py-3 px-6 rounded-xl transition-all border-2 border-fitnix-off-white/20 hover:border-fitnix-off-white/40 uppercase tracking-wide"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

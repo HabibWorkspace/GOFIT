@@ -181,6 +181,177 @@ def export_members_excel():
         return jsonify({'error': str(e)}), 500
 
 
+@admin_complete_bp.route('/finance/export', methods=['POST'])
+@require_admin
+def export_finance_excel():
+    """Export finance transactions to Excel file."""
+    try:
+        # Lazy import openpyxl only when needed
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        
+        data = request.get_json()
+        transactions = data.get('transactions', [])
+        selected_month = data.get('month', '')
+        
+        if not transactions:
+            return jsonify({'error': 'No transactions to export'}), 400
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Finance Report"
+        
+        # Define headers
+        headers = [
+            'Member ID', 'Member Name', 'Phone', 'Amount (Rs.)', 
+            'Due Date', 'Paid Date', 'Status', 'Type'
+        ]
+        
+        # Style for headers
+        header_fill = PatternFill(start_color='B6FF00', end_color='B6FF00', fill_type='solid')
+        header_font = Font(bold=True, size=12, color='000000')
+        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        border = Border(
+            left=Side(style='thin', color='000000'),
+            right=Side(style='thin', color='000000'),
+            top=Side(style='thin', color='000000'),
+            bottom=Side(style='thin', color='000000')
+        )
+        
+        # Add title row
+        ws.merge_cells('A1:H1')
+        title_cell = ws['A1']
+        month_text = f" - {selected_month}" if selected_month else ""
+        title_cell.value = f'MODERN FITNESS GYM - FINANCE REPORT{month_text}'
+        title_cell.font = Font(bold=True, size=16, color='000000')
+        title_cell.alignment = Alignment(horizontal='center', vertical='center')
+        title_cell.fill = PatternFill(start_color='B6FF00', end_color='B6FF00', fill_type='solid')
+        ws.row_dimensions[1].height = 30
+        
+        # Add headers in row 2
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=2, column=col_num, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = border
+        
+        ws.row_dimensions[2].height = 25
+        
+        # Add data rows starting from row 3
+        total_amount = 0
+        for row_num, txn in enumerate(transactions, 3):
+            # Format dates
+            due_date = datetime.fromisoformat(txn['due_date'].replace('Z', '')).strftime('%d-%b-%Y') if txn.get('due_date') else 'N/A'
+            paid_date = datetime.fromisoformat(txn['paid_date'].replace('Z', '')).strftime('%d-%b-%Y') if txn.get('paid_date') else 'N/A'
+            
+            # Format status
+            status = txn.get('status', 'N/A')
+            if status.startswith('GRACE_DAY_'):
+                status = f"Grace Day {status.split('_')[2]}/3"
+            
+            # Write row data
+            row_data = [
+                txn.get('member_id', 'N/A'),
+                txn.get('member_name', 'N/A'),
+                txn.get('phone', 'N/A'),
+                float(txn.get('amount', 0)),
+                due_date,
+                paid_date,
+                status,
+                txn.get('transaction_type', 'N/A')
+            ]
+            
+            # Alternate row colors
+            row_fill = PatternFill(start_color='F0F0F0', end_color='F0F0F0', fill_type='solid') if row_num % 2 == 0 else PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+            
+            # Status-based colors
+            if status == 'COMPLETED':
+                status_fill = PatternFill(start_color='D4EDDA', end_color='D4EDDA', fill_type='solid')
+            elif status == 'OVERDUE':
+                status_fill = PatternFill(start_color='F8D7DA', end_color='F8D7DA', fill_type='solid')
+            elif 'Grace' in status:
+                status_fill = PatternFill(start_color='FFF3CD', end_color='FFF3CD', fill_type='solid')
+            elif status == 'FROZEN':
+                status_fill = PatternFill(start_color='D1ECF1', end_color='D1ECF1', fill_type='solid')
+            else:
+                status_fill = row_fill
+            
+            for col_num, value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_num, column=col_num, value=value)
+                cell.alignment = Alignment(horizontal='left' if col_num != 4 else 'right', vertical='center')
+                cell.border = border
+                
+                # Apply status color to status column
+                if col_num == 7:
+                    cell.fill = status_fill
+                else:
+                    cell.fill = row_fill
+                
+                cell.font = Font(size=11)
+                
+                # Format amount as currency
+                if col_num == 4:
+                    cell.number_format = '#,##0.00'
+            
+            # Add to total if completed
+            if status == 'COMPLETED':
+                total_amount += float(txn.get('amount', 0))
+        
+        # Add total row
+        total_row = len(transactions) + 3
+        ws.merge_cells(f'A{total_row}:C{total_row}')
+        total_label_cell = ws[f'A{total_row}']
+        total_label_cell.value = 'TOTAL COLLECTED'
+        total_label_cell.font = Font(bold=True, size=12, color='000000')
+        total_label_cell.alignment = Alignment(horizontal='right', vertical='center')
+        total_label_cell.fill = PatternFill(start_color='B6FF00', end_color='B6FF00', fill_type='solid')
+        total_label_cell.border = border
+        
+        total_amount_cell = ws[f'D{total_row}']
+        total_amount_cell.value = total_amount
+        total_amount_cell.font = Font(bold=True, size=12, color='000000')
+        total_amount_cell.alignment = Alignment(horizontal='right', vertical='center')
+        total_amount_cell.fill = PatternFill(start_color='B6FF00', end_color='B6FF00', fill_type='solid')
+        total_amount_cell.border = border
+        total_amount_cell.number_format = '#,##0.00'
+        
+        # Set column widths
+        column_widths = {
+            'A': 12,  # Member ID
+            'B': 25,  # Member Name
+            'C': 15,  # Phone
+            'D': 15,  # Amount
+            'E': 15,  # Due Date
+            'F': 15,  # Paid Date
+            'G': 15,  # Status
+            'H': 15   # Type
+        }
+        
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Generate filename with timestamp
+        month_suffix = f"_{selected_month}" if selected_month else ""
+        filename = f"Finance_Report{month_suffix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @admin_complete_bp.route('/members/<member_id>', methods=['GET'])
 @require_admin
 def get_member(member_id):
