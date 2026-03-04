@@ -16,6 +16,7 @@ export default function AdminFinance() {
   const [filteredTransactions, setFilteredTransactions] = useState([])
   const [sortField, setSortField] = useState('due_date')
   const [sortDirection, setSortDirection] = useState('desc')
+  const [statusFilter, setStatusFilter] = useState('all')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -32,20 +33,44 @@ export default function AdminFinance() {
     }
   }, [error, success])
 
-  // Apply filters whenever transactions or search query changes
+  // Apply filters whenever transactions, search query, or status filter changes
   useEffect(() => {
     applyFilters()
-  }, [transactions, searchQuery])
+  }, [transactions, searchQuery, statusFilter])
 
   const applyFilters = () => {
     let filtered = [...transactions]
 
-    // Filter by search query (name, month, status)
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(t => {
+        const status = getOverdueStatus(t)
+        
+        if (statusFilter === 'paid') {
+          return status === 'COMPLETED'
+        } else if (statusFilter === 'pending') {
+          return status === 'PENDING'
+        } else if (statusFilter === 'overdue') {
+          return status === 'OVERDUE' || status.startsWith('GRACE_DAY_')
+        } else if (statusFilter === 'frozen') {
+          return status === 'FROZEN'
+        }
+        return true
+      })
+    }
+
+    // Filter by search query (name, member ID, month, status)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
       filtered = filtered.filter(t => {
+        const member = members[t.member_id]
+        
         // Search by member name
         if (t.full_name && t.full_name.toLowerCase().includes(query)) {
+          return true
+        }
+        // Search by member ID
+        if (member && member.member_number && member.member_number.toString().includes(query)) {
           return true
         }
         // Search by status
@@ -615,8 +640,63 @@ export default function AdminFinance() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="fitnix-card mb-6">
+        {/* Status Filter and Search Bar */}
+        <div className="fitnix-card mb-6 space-y-4">
+          {/* Status Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                statusFilter === 'all'
+                  ? 'bg-fitnix-lime text-fitnix-black'
+                  : 'bg-fitnix-charcoal text-fitnix-off-white border border-fitnix-off-white/20 hover:border-fitnix-lime'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter('paid')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                statusFilter === 'paid'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-fitnix-charcoal text-fitnix-off-white border border-fitnix-off-white/20 hover:border-emerald-500'
+              }`}
+            >
+              Paid
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                statusFilter === 'pending'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-fitnix-charcoal text-fitnix-off-white border border-fitnix-off-white/20 hover:border-amber-500'
+              }`}
+            >
+              Pending
+            </button>
+            <button
+              onClick={() => setStatusFilter('overdue')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                statusFilter === 'overdue'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-fitnix-charcoal text-fitnix-off-white border border-fitnix-off-white/20 hover:border-red-500'
+              }`}
+            >
+              Overdue/Grace
+            </button>
+            <button
+              onClick={() => setStatusFilter('frozen')}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                statusFilter === 'frozen'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-fitnix-charcoal text-fitnix-off-white border border-fitnix-off-white/20 hover:border-blue-500'
+              }`}
+            >
+              Frozen
+            </button>
+          </div>
+
+          {/* Search Bar */}
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -626,7 +706,7 @@ export default function AdminFinance() {
               </div>
               <input
                 type="text"
-                placeholder="Search by member name, month, or status... (Press Enter or click Go)"
+                placeholder="Search by member name, member ID, month, or status..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleSearchKeyPress}
@@ -646,8 +726,8 @@ export default function AdminFinance() {
               Clear
             </button>
           </div>
-          {searchQuery && (
-            <p className="mt-3 text-sm text-fitnix-off-white/60">
+          {(searchQuery || statusFilter !== 'all') && (
+            <p className="text-sm text-fitnix-off-white/60">
               Showing {filteredTransactions.length} of {transactions.length} transactions
             </p>
           )}
@@ -658,6 +738,7 @@ export default function AdminFinance() {
             <table className="w-full">
               <thead>
                 <tr className="bg-fitnix-black border-b-2 border-fitnix-lime/30">
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/12">ID</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/6">Month</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap w-1/4">
                     <button 
@@ -700,7 +781,7 @@ export default function AdminFinance() {
               <tbody className="bg-fitnix-charcoal/30">
                 {filteredTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center">
+                    <td colSpan="8" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <svg className="w-16 h-16 text-fitnix-off-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -714,8 +795,12 @@ export default function AdminFinance() {
                   filteredTransactions.map((transaction, index) => {
                     const member = members[transaction.member_id]
                     const memberName = member ? (member.full_name || member.username) : transaction.member_id
+                    const memberId = member ? member.member_number : 'N/A'
                     return (
                       <tr key={transaction.id} className={`hover:bg-fitnix-black/50 transition-colors border-b border-fitnix-lime/10 ${index % 2 === 0 ? 'bg-fitnix-charcoal/20' : 'bg-fitnix-charcoal/40'}`}>
+                        <td className="px-6 py-6 text-base text-fitnix-lime font-bold whitespace-nowrap">
+                          {memberId}
+                        </td>
                         <td className="px-6 py-6 text-base text-fitnix-off-white font-semibold whitespace-nowrap">
                           {transaction.due_date ? new Date(transaction.due_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
                         </td>

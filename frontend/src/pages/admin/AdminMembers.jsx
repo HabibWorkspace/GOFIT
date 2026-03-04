@@ -59,6 +59,11 @@ export default function AdminMembers() {
     }
   }, [error, success])
 
+  // Auto-apply search filter whenever members or search query changes
+  useEffect(() => {
+    handleSearch()
+  }, [members, searchQuery])
+
   // Calculate final payable whenever relevant fields change
   useEffect(() => {
     calculateFinalPayable()
@@ -1436,7 +1441,7 @@ export default function AdminMembers() {
               </div>
               <input
                 type="text"
-                placeholder="Search members by name, phone, or email... (Press Enter or click Go)"
+                placeholder="Search by member ID, name, phone, or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleSearchKeyPress}
