@@ -183,19 +183,43 @@ export default function AdminFinance() {
 
   const handleWhatsAppContact = (transaction) => {
     const member = members[transaction.member_id]
-    if (!member || !member.phone) {
+    
+    if (!member) {
+      setError('Member information not found. Please refresh the page.')
+      return
+    }
+    
+    if (!member.phone) {
       setError('Member phone number not available')
       return
     }
     
-    const phone = member.phone.replace(/[^0-9]/g, '')
-    const memberName = member.full_name || member.username
+    // Clean phone number - remove all non-digits
+    let phone = member.phone.replace(/[^0-9]/g, '')
+    
+    // Ensure phone has country code (Pakistan = 92)
+    if (!phone.startsWith('92') && phone.startsWith('0')) {
+      phone = '92' + phone.substring(1)
+    } else if (!phone.startsWith('92') && !phone.startsWith('0')) {
+      phone = '92' + phone
+    }
+    
+    const memberName = member.full_name || member.username || 'Member'
     const amount = parseFloat(transaction.amount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 })
     const dueDate = new Date(transaction.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     
-    const message = `Dear ${memberName},\n\nThis is a reminder that your gym membership payment of Rs. ${amount} was due on ${dueDate}.\n\nPlease make the payment at your earliest convenience to continue enjoying our services.\n\nThank you!\nModern Fitness Gym`
+    // Create message with proper line breaks
+    const message = `Dear ${memberName},
+
+This is a reminder that your gym membership payment of Rs. ${amount} was due on ${dueDate}.
+
+Please make the payment at your earliest convenience to continue enjoying our services.
+
+Thank you!
+Modern Fitness Gym`
     
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+    // Use api.whatsapp.com for better mobile compatibility
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
   }
 
