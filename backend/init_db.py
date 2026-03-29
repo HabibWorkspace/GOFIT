@@ -14,7 +14,7 @@ from services.password_service import PasswordService
 def init_database():
     """Initialize the database schema."""
     config = get_config()
-    app = create_app(config)
+    app, socketio = create_app(config)
     
     with app.app_context():
         # Create all tables
@@ -25,17 +25,19 @@ def init_database():
         # Create admin user if it doesn't exist
         print("Creating admin user...")
         
-        admin = User.query.filter_by(username='admin').first()
+        admin = User.query.filter_by(username='habib').first()
         if not admin:
             admin = User(
-                username='admin',
-                password_hash=PasswordService.hash_password('admin123'),
+                username='habib',
+                email='admin@fitnix.com',
+                password_hash=PasswordService.hash_password('admin22@@'),
                 role=UserRole.ADMIN,
+                full_name='Admin User',
                 is_active=True
             )
             db.session.add(admin)
             db.session.commit()
-            print("  Admin user created (username: admin, password: admin123)")
+            print("  Admin user created (username: habib, password: admin22@@)")
         else:
             print("  Admin user already exists")
         
