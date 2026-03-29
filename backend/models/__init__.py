@@ -5,6 +5,8 @@ from .trainer_profile import TrainerProfile
 from .package import Package
 from .transaction import Transaction
 from .settings import Settings
+from .attendance_record import AttendanceRecord
+from .device_user_mapping import DeviceUserMapping
 
 __all__ = [
     'User',
@@ -13,4 +15,6 @@ __all__ = [
     'Package',
     'Transaction',
     'Settings',
+    'AttendanceRecord',
+    'DeviceUserMapping',
 ]

@@ -16,11 +16,23 @@ load_dotenv(dotenv_path=env_path)
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from database import db
 from config import get_config
 
 # Initialize extensions
 jwt = JWTManager()
+socketio = SocketIO()
+
+# Rate limiting storage (in-memory for development, use Redis for production)
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 
 def create_app(config=None):
@@ -37,12 +49,34 @@ def create_app(config=None):
     
     # Enable detailed logging
     import logging
-    logging.basicConfig(level=logging.DEBUG)
-    app.logger.setLevel(logging.DEBUG)
+    
+    # Configure logging based on environment
+    if app.config.get('ENV') == 'production':
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        app.logger.setLevel(logging.INFO)
+    else:
+        logging.basicConfig(level=logging.DEBUG)
+        app.logger.setLevel(logging.DEBUG)
+    
+    # Configure attendance logging with rotation
+    from logging_config import setup_attendance_logging
+    setup_attendance_logging()
     
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
+    limiter.init_app(app)
+    
+    # Initialize Flask-SocketIO with CORS support
+    socketio.init_app(app, 
+                     cors_allowed_origins="*",
+                     async_mode='threading',
+                     logger=True,
+                     engineio_logger=True)
     
     # Debug: Log email configuration
     app.logger.info(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
@@ -50,13 +84,22 @@ def create_app(config=None):
     app.logger.info(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
     app.logger.info(f"MAIL_PASSWORD: {'*' * len(app.config.get('MAIL_PASSWORD', '')) if app.config.get('MAIL_PASSWORD') else 'NOT SET'}")
     
-    # Configure CORS - Allow all origins for local development
+    # Configure CORS - Production-ready with environment-based origins
+    allowed_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+    
+    # In production, use specific origins only
+    if app.config.get('ENV') == 'production':
+        allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+    else:
+        # Development: allow localhost
+        allowed_origins = "*"
+    
     CORS(app, 
          resources={r"/api/*": {
-             "origins": "*",
+             "origins": allowed_origins,
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With", "Pragma", "Expires", "If-None-Match", "If-Modified-Since"],
-             "supports_credentials": False,
+             "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With"],
+             "supports_credentials": True if app.config.get('ENV') == 'production' else False,
              "expose_headers": ["Content-Type", "Authorization"],
              "max_age": 3600
          }})
@@ -67,22 +110,50 @@ def create_app(config=None):
     from routes.finance import finance_bp
     from routes.packages import packages_bp
     
+    try:
+        from routes.attendance import attendance_bp
+        app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
+    except ImportError as e:
+        app.logger.warning(f"Could not import attendance blueprint: {e}")
+    
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_complete_bp, url_prefix='/api/admin')
     app.register_blueprint(finance_bp, url_prefix='/api/finance')
     app.register_blueprint(packages_bp, url_prefix='/api/packages')
     
-    # Add request logging
-    @app.before_request
-    def log_request():
-        app.logger.info(f"\n{'='*60}")
-        app.logger.info(f"INCOMING REQUEST:")
-        app.logger.info(f"Path: {request.path}")
-        app.logger.info(f"Method: {request.method}")
-        app.logger.info(f"Blueprint: {request.blueprint}")
-        app.logger.info(f"Endpoint: {request.endpoint}")
-        app.logger.info(f"Headers: {dict(request.headers)}")
-        app.logger.info(f"{'='*60}\n")
+    # Add request logging (only in development)
+    if app.config.get('ENV') != 'production':
+        @app.before_request
+        def log_request():
+            app.logger.info(f"\n{'='*60}")
+            app.logger.info(f"INCOMING REQUEST:")
+            app.logger.info(f"Path: {request.path}")
+            app.logger.info(f"Method: {request.method}")
+            app.logger.info(f"Blueprint: {request.blueprint}")
+            app.logger.info(f"Endpoint: {request.endpoint}")
+            app.logger.info(f"Headers: {dict(request.headers)}")
+            app.logger.info(f"{'='*60}\n")
+    
+    # Add security headers
+    @app.after_request
+    def add_security_headers(response):
+        """Add security headers to all responses."""
+        # Prevent clickjacking
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        # Prevent MIME type sniffing
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        # Enable XSS protection
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        # Strict transport security (HTTPS only in production)
+        if app.config.get('ENV') == 'production':
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        # Content Security Policy
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:"
+        # Referrer policy
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        # Permissions policy
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        return response
     
     # Health check endpoint for uptime monitoring
     @app.route('/api/health', methods=['GET'])
@@ -158,13 +229,69 @@ def create_app(config=None):
     with app.app_context():
         db.create_all()
     
-    return app
+    # Initialize attendance service
+    attendance_service = None
+    try:
+        from services.biometric_service import BiometricDeviceClient
+        from services.attendance_service import AttendanceService
+        from services.notification_service import NotificationService
+        
+        app.logger.info("Initializing attendance service...")
+        
+        # Create biometric device client
+        device_ip = os.getenv('BIOMETRIC_DEVICE_IP', '192.168.0.201')
+        device_port = int(os.getenv('BIOMETRIC_DEVICE_PORT', 4370))
+        device_client = BiometricDeviceClient(ip=device_ip, port=device_port)
+        
+        # Create notification service
+        notification_service = NotificationService(socketio=socketio)
+        
+        # Create attendance service with dependencies
+        with app.app_context():
+            attendance_service = AttendanceService(
+                device_client=device_client,
+                db_session=db.session,
+                notification_emitter=notification_service,
+                app=app
+            )
+            
+            # Start sync loop (3-second interval for near-instant notifications)
+            attendance_service.start_sync_loop(interval_seconds=3)
+            
+            app.logger.info("Attendance service initialized and sync loop started")
+        
+    except Exception as e:
+        app.logger.error(f"Failed to initialize attendance service: {str(e)}", exc_info=True)
+        attendance_service = None
+    
+    # Store attendance service and device client in app config for access in routes
+    app.config['attendance_service'] = attendance_service
+    if 'device_client' in locals():
+        app.config['biometric_device_client'] = device_client
+    
+    # Register shutdown handler for graceful cleanup
+    def shutdown_handler():
+        """Handle graceful shutdown of attendance service."""
+        try:
+            if attendance_service and attendance_service._is_running:
+                app.logger.info("Shutting down attendance service...")
+                attendance_service.stop_sync_loop()
+                if attendance_service.device_client.is_connected():
+                    attendance_service.device_client.disconnect()
+                app.logger.info("Attendance service shut down successfully")
+        except Exception as e:
+            app.logger.error(f"Error during attendance service shutdown: {str(e)}", exc_info=True)
+    
+    import atexit
+    atexit.register(shutdown_handler)
+    
+    return app, socketio
 
 
 if __name__ == '__main__':
-    app = create_app()
+    app, socketio_instance = create_app()
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=os.getenv('FLASK_ENV') == 'development', use_reloader=False)
+    socketio_instance.run(app, host='0.0.0.0', port=port, debug=os.getenv('FLASK_ENV') == 'development', use_reloader=False)
 else:
     # For gunicorn
-    app = create_app()
+    app, socketio_instance = create_app()

@@ -6,14 +6,14 @@ import os
 # Add backend to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import create_app, db
+from app import create_app, db, socketio
 from config import TestingConfig
 
 
 @pytest.fixture
 def app():
     """Create application for testing."""
-    app = create_app(TestingConfig)
+    app, socketio_instance = create_app(TestingConfig)
     
     with app.app_context():
         db.create_all()
