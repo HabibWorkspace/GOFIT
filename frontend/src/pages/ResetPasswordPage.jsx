@@ -55,13 +55,13 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-charcoal-dark flex items-center justify-center p-4">
-        <div className="bg-fitnix-charcoal rounded-2xl p-8 w-full max-w-md border border-fitnix-primary">
+      <div className="min-h-screen bg-fitnix-dark flex items-center justify-center p-4">
+        <div className="bg-fitnix-dark-light rounded-2xl p-8 w-full max-w-md border border-fitnix-gold">
           <div className="text-center">
-            <svg className="w-16 h-16 mx-auto text-fitnix-primary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 mx-auto text-fitnix-gold mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h2 className="text-2xl font-bold text-fitnix-primary mb-2">Password Reset Successful!</h2>
+            <h2 className="text-2xl font-bold text-fitnix-gold mb-2">Password Reset Successful!</h2>
             <p className="text-fitnix-off-white mb-4">
               Your password has been reset successfully.
             </p>
@@ -75,20 +75,20 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-charcoal-dark flex items-center justify-center p-4">
-      <div className="bg-fitnix-charcoal rounded-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-fitnix-dark flex items-center justify-center p-4">
+      <div className="bg-fitnix-dark-light rounded-2xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <img 
-            src="/fitcore-logo.png" 
-            alt="FitCore Logo" 
-            className="h-16 mx-auto mb-4"
+            src="/logo.PNG" 
+            alt="GOFIT Logo" 
+            className="h-24 mx-auto mb-4"
           />
-          <h1 className="text-3xl font-bold text-fitnix-primary mb-2">Reset Password</h1>
+          <h1 className="text-3xl font-bold text-fitnix-gold mb-2">Reset Password</h1>
           <p className="text-fitnix-off-white/60">Enter your new password</p>
         </div>
 
         {error && (
-          <div className="bg-charcoal-dark border border-red-500 text-fitnix-off-white px-4 py-3 rounded-xl mb-6">
+          <div className="bg-fitnix-dark border border-red-500 text-fitnix-off-white px-4 py-3 rounded-xl mb-6">
             <div className="flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-charcoal-dark text-fitnix-off-white px-4 py-3 pr-12 rounded-lg border border-neutral-border focus:border-fitnix-primary focus:outline-none"
+                className="w-full bg-fitnix-dark text-fitnix-off-white px-4 py-3 pr-12 rounded-lg border border-fitnix-gold/30 focus:border-fitnix-gold focus:outline-none"
                 placeholder="Enter new password"
                 required
                 disabled={!token || loading}
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-fitnix-off-white/60 hover:text-fitnix-primary transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fitnix-off-white/60 hover:text-fitnix-gold transition-colors"
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-charcoal-dark text-fitnix-off-white px-4 py-3 rounded-lg border border-neutral-border focus:border-fitnix-primary focus:outline-none"
+              className="w-full bg-fitnix-dark text-fitnix-off-white px-4 py-3 rounded-lg border border-fitnix-gold/30 focus:border-fitnix-gold focus:outline-none"
               placeholder="Confirm new password"
               required
               disabled={!token || loading}
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={!token || loading}
-            className="w-full bg-fitnix-primary hover:bg-fitnix-primary-dark text-fitnix-off-white-dark font-bold py-3 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-off-white-dark font-bold py-3 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Resetting...' : 'Reset Password'}
           </button>
@@ -157,7 +157,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="text-fitnix-primary hover:text-fitnix-primary-dark transition-colors"
+              className="text-fitnix-gold hover:text-fitnix-gold-dark transition-colors"
             >
               Back to Login
             </button>

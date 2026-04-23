@@ -7,9 +7,12 @@ from enum import Enum
 
 class UserRole(Enum):
     """User role enumeration."""
-    ADMIN = 'admin'
+    SUPER_ADMIN = 'super_admin'  # Gym owner with full access
+    ADMIN = 'admin'  # Receptionist with limited access (legacy, will be migrated to RECEPTIONIST)
+    RECEPTIONIST = 'receptionist'  # Front desk staff with limited access
     TRAINER = 'trainer'
     MEMBER = 'member'
+    SCANNER = 'scanner'  # QR Scanner role for front desk
 
 
 class User(db.Model):
@@ -19,6 +22,7 @@ class User(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    password = db.Column(db.String(255), nullable=True)  # Plain password for display
     role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.MEMBER)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     reset_token = db.Column(db.String(255), nullable=True)

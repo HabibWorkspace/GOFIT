@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
-import logo from '/fitcore-logo.png'
 
 export default function AdminPackages() {
   const [packages, setPackages] = useState([])
@@ -136,28 +135,28 @@ export default function AdminPackages() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-fitnix-black flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-fitnix-dark flex items-center justify-center z-50">
         <div className="relative flex flex-col items-center">
           {/* Outer rotating ring */}
           <div className="relative w-24 h-24">
-            <div className="absolute inset-0 rounded-full border-4 border-fitnix-charcoal/30"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-lime border-r-fitnix-lime animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-dark-lime border-l-fitnix-dark-lime animate-spin-reverse"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-fitnix-dark-light/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-gold border-r-fitnix-gold animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-gold-dark border-l-fitnix-gold-dark animate-spin-reverse"></div>
             {/* Logo in center */}
             <div className="absolute inset-0 flex items-center justify-center">
               <img 
-                src={logo} 
+                src="/logo.PNG" 
                 alt="FitNix Logo" 
                 className="w-14 h-14 object-contain animate-pulse" 
                 style={{ 
-                  filter: 'drop-shadow(0 0 8px rgba(182, 255, 0, 0.3))',
+                  filter: 'drop-shadow(0 0 8px rgba(242, 194, 40, 0.3))',
                   mixBlendMode: 'screen'
                 }} 
               />
             </div>
           </div>
           {/* Loading text */}
-          <p className="mt-4 text-fitnix-lime font-semibold animate-pulse">Loading...</p>
+          <p className="mt-4 text-fitnix-gold font-semibold animate-pulse">Loading...</p>
         </div>
       </div>
     )
@@ -218,9 +217,9 @@ export default function AdminPackages() {
         )}
 
         {success && (
-          <div className="bg-fitnix-charcoal border border-fitnix-lime text-fitnix-off-white px-4 py-3 rounded-xl">
+          <div className="bg-fitnix-dark-light border border-fitnix-gold text-fitnix-off-white px-4 py-3 rounded-xl">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-fitnix-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {success}
@@ -289,7 +288,7 @@ export default function AdminPackages() {
                     id="is_active"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 text-fitnix-lime bg-fitnix-charcoal border-fitnix-off-white/20 rounded focus:ring-fitnix-lime focus:ring-2"
+                    className="w-4 h-4 text-fitnix-gold bg-fitnix-dark-light border-fitnix-off-white/20 rounded focus:ring-fitnix-gold focus:ring-2"
                   />
                   <label htmlFor="is_active" className="ml-2 text-fitnix-off-white">Active</label>
                 </div>
@@ -331,16 +330,16 @@ export default function AdminPackages() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {packages.map((pkg) => (
-            <div key={pkg.id} className="fitnix-card-hover border-2 border-fitnix-lime/20 hover:border-fitnix-lime/40 hover:shadow-neon-lime transform hover:scale-105">
+            <div key={pkg.id} className="fitnix-card-hover border-2 border-fitnix-gold/20 hover:border-fitnix-gold/40 hover:shadow-neon-lime transform hover:scale-105">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-fitnix-lime">{pkg.name}</h3>
+                  <h3 className="text-xl font-bold text-fitnix-gold">{pkg.name}</h3>
                   <p className="text-sm text-fitnix-off-white/60">{pkg.duration_days} days</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                   pkg.is_active 
-                    ? 'bg-fitnix-black text-fitnix-lime border-fitnix-lime' 
-                    : 'bg-fitnix-black text-fitnix-off-white/50 border-fitnix-off-white/30'
+                    ? 'bg-fitnix-dark text-fitnix-gold border-fitnix-gold' 
+                    : 'bg-fitnix-dark text-fitnix-off-white/50 border-fitnix-off-white/30'
                 }`}>
                   {pkg.is_active ? 'Active' : 'Inactive'}
                 </span>
@@ -356,7 +355,7 @@ export default function AdminPackages() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(pkg)}
-                  className="flex-1 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black px-3 py-1.5 rounded-md transition font-semibold text-xs shadow-md hover:scale-105"
+                  className="flex-1 bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1.5 rounded-md transition font-semibold text-xs shadow-md hover:scale-105"
                 >
                   Edit
                 </button>
@@ -395,7 +394,7 @@ export default function AdminPackages() {
       {/* Delete Confirmation Modal */}
       {deletingPackage && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-fitnix-charcoal border-2 border-red-500 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
+          <div className="bg-fitnix-dark-light border-2 border-red-500 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
             {/* Warning Icon */}
             <div className="flex justify-center mb-4">
               <div className="bg-red-500/20 rounded-full p-3">
@@ -411,9 +410,9 @@ export default function AdminPackages() {
             </h3>
 
             {/* Package Info */}
-            <div className="bg-fitnix-black/50 rounded-lg p-4 mb-4 border border-red-500/30">
+            <div className="bg-fitnix-dark/50 rounded-lg p-4 mb-4 border border-red-500/30">
               <p className="text-fitnix-off-white/80 text-sm mb-2">You are about to delete:</p>
-              <p className="text-fitnix-lime font-bold text-lg">{deletingPackage.name}</p>
+              <p className="text-fitnix-gold font-bold text-lg">{deletingPackage.name}</p>
               <p className="text-fitnix-off-white/60 text-sm">Duration: {deletingPackage.duration_days} days</p>
               <p className="text-fitnix-off-white/60 text-sm">Price: Rs. {deletingPackage.price}</p>
               {deletingPackage.description && (
@@ -430,7 +429,7 @@ export default function AdminPackages() {
             <div className="flex gap-3">
               <button
                 onClick={cancelDelete}
-                className="flex-1 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
+                className="flex-1 bg-fitnix-dark-light hover:bg-fitnix-dark-light/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
               >
                 Cancel
               </button>

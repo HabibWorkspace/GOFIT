@@ -1,17 +1,17 @@
 {
-  "name": "FitCore - Gym Management System",
-  "short_name": "FitCore",
-  "description": "Comprehensive gym management system with attendance tracking, diet logging, and progress monitoring",
+  "name": "GOFIT - Gym Management System",
+  "short_name": "GOFIT",
+  "description": "Comprehensive gym management system with member tracking and financial management",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#B6FF00",
-  "background_color": "#0B0B0B",
+  "theme_color": "#F2C228",
+  "background_color": "#000000",
   "categories": ["fitness", "health"],
   "icons": [
     {
-      "src": "/fitcore-logo.png",
+      "src": "/logo.PNG",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

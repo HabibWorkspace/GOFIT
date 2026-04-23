@@ -16,8 +16,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0A0A0A 0%, #1C1C1E 100%);
-  color: #F5F5F7;
+  background: #000000;
+  color: #f5f5f5;
   min-height: 100vh;
 }
 
@@ -53,26 +53,26 @@ code {
     @apply font-bold text-xl;
   }
   
-  /* Card Components - Reduced glow effects */
+  /* Card Components - Darker for better consistency */
   .fitnix-card {
-    @apply bg-fitnix-charcoal/80 backdrop-blur-xl border border-fitnix-lime/10 rounded-2xl p-6 transition-all duration-300;
+    @apply bg-fitnix-dark-light/40 backdrop-blur-xl border border-fitnix-gold/10 rounded-2xl p-6 transition-all duration-300;
   }
   
   .fitnix-card-hover {
-    @apply bg-fitnix-charcoal/60 backdrop-blur-lg border border-fitnix-lime/10 rounded-2xl p-5 hover:bg-fitnix-charcoal/80 hover:border-fitnix-lime/40 transition-all duration-300 cursor-pointer transform hover:scale-[1.01];
+    @apply bg-fitnix-dark-light/30 backdrop-blur-lg border border-fitnix-gold/10 rounded-2xl p-5 hover:bg-fitnix-dark-light/50 hover:border-fitnix-gold/30 transition-all duration-300 cursor-pointer transform hover:scale-[1.01];
   }
   
   .fitnix-card-glow {
-    @apply bg-gradient-to-br from-fitnix-charcoal/90 to-fitnix-black/90 backdrop-blur-xl border-2 border-fitnix-lime/10 rounded-2xl p-6 transition-all duration-300;
+    @apply bg-gradient-to-br from-fitnix-dark-light/50 to-fitnix-dark/80 backdrop-blur-xl border-2 border-fitnix-gold/20 rounded-2xl p-6 transition-all duration-300;
   }
   
-  /* Icon Gradients - More vibrant */
+  /* Icon Gradients - Golden & Dark Theme */
   .fitnix-icon-gradient-lime {
-    @apply bg-gradient-to-br from-fitnix-lime via-fitnix-lime-glow to-fitnix-dark-lime shadow-neon-lime;
+    @apply bg-gradient-to-br from-fitnix-gold via-fitnix-gold-light to-fitnix-gold-dark shadow-gold-glow;
   }
   
   .fitnix-icon-gradient-cyan {
-    @apply bg-gradient-to-br from-fitnix-cyan to-fitnix-blue shadow-neon-cyan;
+    @apply bg-gradient-to-br from-fitnix-blue to-blue-600;
   }
   
   .fitnix-icon-gradient-orange {
@@ -84,16 +84,16 @@ code {
   }
   
   .fitnix-icon-gradient-purple {
-    @apply bg-gradient-to-br from-fitnix-purple to-purple-700 shadow-neon-purple;
+    @apply bg-gradient-to-br from-fitnix-dark to-fitnix-dark-light shadow-dark-glow;
   }
   
-  /* Button Components - Reduced glow effects */
+  /* Button Components - Darker secondary button */
   .fitnix-button-primary {
-    @apply bg-gradient-to-r from-fitnix-lime to-fitnix-lime-glow text-fitnix-black font-bold px-6 py-3 rounded-xl hover:from-fitnix-dark-lime hover:to-fitnix-lime transition-all duration-300 shadow-md hover:scale-105 active:scale-95;
+    @apply bg-gradient-to-r from-fitnix-gold to-fitnix-gold-light text-fitnix-dark font-bold px-6 py-3 rounded-xl hover:from-fitnix-gold-dark hover:to-fitnix-gold transition-all duration-300 shadow-md hover:scale-105 active:scale-95;
   }
   
   .fitnix-button-secondary {
-    @apply bg-fitnix-charcoal/80 backdrop-blur-lg text-fitnix-off-white border-2 border-fitnix-lime/30 font-semibold px-6 py-3 rounded-xl hover:border-fitnix-lime hover:text-fitnix-lime transition-all duration-300 hover:scale-105 active:scale-95;
+    @apply bg-fitnix-dark-light/40 backdrop-blur-lg text-fitnix-off-white border-2 border-fitnix-gold/30 font-semibold px-6 py-3 rounded-xl hover:border-fitnix-gold hover:text-fitnix-gold transition-all duration-300 hover:scale-105 active:scale-95;
   }
   
   .fitnix-button-danger {
@@ -101,29 +101,29 @@ code {
   }
   
   .fitnix-button-info {
-    @apply bg-gradient-to-r from-cyan-600/30 to-cyan-700/30 backdrop-blur-lg text-cyan-300 border-2 border-cyan-500/50 font-bold px-5 py-2.5 rounded-xl hover:from-cyan-600/50 hover:to-cyan-700/50 transition-all duration-300 hover:scale-105 active:scale-95;
+    @apply bg-gradient-to-r from-fitnix-blue/30 to-blue-600/30 backdrop-blur-lg text-blue-300 border-2 border-fitnix-blue/50 font-bold px-5 py-2.5 rounded-xl hover:from-fitnix-blue/50 hover:to-blue-600/50 transition-all duration-300 hover:scale-105 active:scale-95;
   }
   
   .fitnix-button-warning {
-    @apply bg-gradient-to-r from-amber-600 to-amber-700 text-fitnix-black font-bold px-5 py-2.5 rounded-xl hover:from-amber-500 hover:to-amber-600 transition-all duration-300 shadow-md hover:scale-105 active:scale-95;
+    @apply bg-gradient-to-r from-amber-600 to-amber-700 text-fitnix-dark font-bold px-5 py-2.5 rounded-xl hover:from-amber-500 hover:to-amber-600 transition-all duration-300 shadow-md hover:scale-105 active:scale-95;
   }
   
-  /* Input Components - Reduced glow on focus */
+  /* Input Components - Darker for consistency */
   .fitnix-input {
-    @apply bg-fitnix-charcoal/80 backdrop-blur-lg border-2 border-fitnix-lime/20 text-fitnix-off-white rounded-xl px-4 py-3 focus:outline-none focus:border-fitnix-lime focus:ring-1 focus:ring-fitnix-lime/30 transition-all duration-300 font-normal placeholder:text-fitnix-gray;
+    @apply bg-fitnix-dark-light/40 backdrop-blur-lg border-2 border-fitnix-gold/20 text-fitnix-off-white rounded-xl px-4 py-3 focus:outline-none focus:border-fitnix-gold focus:ring-1 focus:ring-fitnix-gold/40 transition-all duration-300 font-normal placeholder:text-fitnix-gray;
   }
   
   .fitnix-label {
     @apply block text-fitnix-off-white font-semibold mb-2 text-sm uppercase tracking-wider;
   }
   
-  /* Navigation Items - Reduced glow */
+  /* Navigation Items - Darker for consistency */
   .fitnix-nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-fitnix-off-white/80 hover:text-fitnix-lime hover:bg-fitnix-charcoal/60 transition-all duration-300 font-medium;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-fitnix-off-white/80 hover:text-fitnix-gold hover:bg-fitnix-dark-light/40 transition-all duration-300 font-medium;
   }
   
   .fitnix-nav-item.active {
-    @apply text-fitnix-lime bg-fitnix-charcoal/80 font-bold;
+    @apply text-fitnix-gold bg-fitnix-dark-light/60 font-bold;
   }
   
   /* Metric Card - Reduced glow on hover */
@@ -131,9 +131,9 @@ code {
     @apply fitnix-card-hover transition-all duration-300 cursor-pointer transform hover:-translate-y-1;
   }
   
-  /* Gradient Text - Enhanced */
+  /* Gradient Text - Golden Theme */
   .fitnix-gradient-text {
-    @apply bg-gradient-to-r from-fitnix-lime via-fitnix-lime-glow to-fitnix-lime bg-clip-text text-transparent font-extrabold;
+    @apply bg-gradient-to-r from-fitnix-gold via-fitnix-gold-light to-fitnix-gold bg-clip-text text-transparent font-extrabold;
   }
   
   /* Badge Components */
@@ -157,17 +157,17 @@ code {
     @apply fitnix-badge bg-cyan-500/20 text-cyan-400 border border-cyan-500/50;
   }
   
-  /* Table Enhancements */
+  /* Table Enhancements - Darker for consistency */
   .fitnix-table-header {
-    @apply bg-fitnix-black/80 backdrop-blur-lg border-b-2 border-fitnix-lime/30;
+    @apply bg-fitnix-dark/60 backdrop-blur-lg border-b-2 border-fitnix-gold/30;
   }
   
   .fitnix-table-row {
-    @apply hover:bg-fitnix-charcoal/60 transition-all duration-200 border-b border-fitnix-lime/5;
+    @apply hover:bg-fitnix-dark-light/40 transition-all duration-200 border-b border-fitnix-gold/10;
   }
   
   .fitnix-table-row-alt {
-    @apply bg-fitnix-charcoal/20;
+    @apply bg-fitnix-dark-light/10;
   }
 }
 
@@ -179,26 +179,26 @@ code {
   @apply inline-block animate-spin;
 }
 
-/* Enhanced Scrollbar Styling */
+/* Enhanced Scrollbar Styling - Golden Theme */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A0A0A;
+  background: #000000;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #8BC34A 0%, #B6FF00 100%);
+  background: linear-gradient(135deg, #C29A1F 0%, #F2C228 100%);
   border-radius: 10px;
-  border: 2px solid #0A0A0A;
+  border: 2px solid #000000;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #B6FF00 0%, #D4FF33 100%);
-  box-shadow: 0 0 10px rgba(182, 255, 0, 0.5);
+  background: linear-gradient(135deg, #F2C228 0%, #F5D563 100%);
+  box-shadow: 0 0 10px rgba(242, 194, 40, 0.5);
 }
 
 /* Custom Animations */
@@ -343,6 +343,26 @@ code {
   }
 }
 
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .animate-fadeInUp {
   animation: fadeInUp 0.6s ease-out;
 }
@@ -357,6 +377,14 @@ code {
 
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .floating-fitness-icon {
@@ -381,28 +409,28 @@ code {
   pointer-events: auto;
 }
 
-/* Glass morphism effect */
+/* Glass morphism effect - Golden Theme with Pure Black */
 .glass {
-  background: rgba(28, 28, 30, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(182, 255, 0, 0.1);
+  border: 1px solid rgba(242, 194, 40, 0.2);
 }
 
-/* Neon glow effect */
+/* Neon glow effect - Golden Theme */
 .neon-glow {
-  text-shadow: 0 0 10px rgba(182, 255, 0, 0.8),
-               0 0 20px rgba(182, 255, 0, 0.6),
-               0 0 30px rgba(182, 255, 0, 0.4);
+  text-shadow: 0 0 10px rgba(242, 194, 40, 0.8),
+               0 0 20px rgba(242, 194, 40, 0.6),
+               0 0 30px rgba(242, 194, 40, 0.4);
 }
 
-/* Shimmer effect for loading states */
+/* Shimmer effect for loading states - Golden Theme */
 .shimmer {
   background: linear-gradient(
     90deg,
-    rgba(28, 28, 30, 0) 0%,
-    rgba(182, 255, 0, 0.1) 50%,
-    rgba(28, 28, 30, 0) 100%
+    rgba(0, 0, 0, 0) 0%,
+    rgba(242, 194, 40, 0.15) 50%,
+    rgba(0, 0, 0, 0) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
@@ -430,4 +458,341 @@ code {
   75% {
     transform: translate(calc(var(--move-x) * -0.5), calc(var(--move-y) * 0.8));
   }
+}
+
+
+/* React DatePicker Custom Styling - FitNix Theme - Minimalist & Clean */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker {
+  font-family: 'Inter', sans-serif !important;
+  background: #0a0a0a !important;
+  border: 2px solid rgba(242, 194, 40, 0.4) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+  overflow: hidden !important;
+}
+
+.react-datepicker__header {
+  background: #0f0f0f !important;
+  border-bottom: 2px solid rgba(242, 194, 40, 0.3) !important;
+  border-top-left-radius: 14px !important;
+  border-top-right-radius: 14px !important;
+  padding-top: 16px !important;
+  padding-bottom: 12px !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: #F2C228 !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  margin-bottom: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.react-datepicker__day-names {
+  margin-top: 8px !important;
+  padding: 0 8px !important;
+}
+
+.react-datepicker__day-name {
+  color: #F5D563 !important;
+  font-weight: 600 !important;
+  width: 2.5rem !important;
+  line-height: 2.5rem !important;
+  margin: 0.2rem !important;
+  text-transform: uppercase !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.5px !important;
+}
+
+.react-datepicker__month {
+  margin: 0.6rem !important;
+  padding: 0.4rem !important;
+}
+
+.react-datepicker__day {
+  color: #f5f5f5 !important;
+  background-color: transparent !important;
+  width: 2.5rem !important;
+  line-height: 2.5rem !important;
+  margin: 0.2rem !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+}
+
+.react-datepicker__day:hover {
+  background: rgba(242, 194, 40, 0.2) !important;
+  color: #F2C228 !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: linear-gradient(135deg, #C29A1F 0%, #F2C228 100%) !important;
+  color: #0a0a0a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(242, 194, 40, 0.4) !important;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background: linear-gradient(135deg, #F2C228 0%, #F5D563 100%) !important;
+}
+
+.react-datepicker__day--today {
+  border: 2px solid #F2C228 !important;
+  font-weight: 600 !important;
+  background: rgba(242, 194, 40, 0.1) !important;
+}
+
+.react-datepicker__day--today:hover {
+  border-color: #F5D563 !important;
+  background: rgba(242, 194, 40, 0.2) !important;
+}
+
+.react-datepicker__day--disabled {
+  color: #3a3a3a !important;
+  cursor: not-allowed !important;
+  opacity: 0.3 !important;
+}
+
+.react-datepicker__day--disabled:hover {
+  background-color: transparent !important;
+}
+
+.react-datepicker__day--outside-month {
+  color: #555555 !important;
+  opacity: 0.4 !important;
+}
+
+.react-datepicker__navigation {
+  top: 16px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  transition: background 0.2s ease !important;
+}
+
+.react-datepicker__navigation:hover {
+  background: rgba(242, 194, 40, 0.15) !important;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: #F2C228 !important;
+  border-width: 2px 2px 0 0 !important;
+  height: 9px !important;
+  width: 9px !important;
+  top: 9px !important;
+}
+
+.react-datepicker__navigation:hover *::before {
+  border-color: #F5D563 !important;
+}
+
+/* FIXED: Dropdown text colors - now readable */
+.react-datepicker__month-dropdown,
+.react-datepicker__year-dropdown {
+  background: #0a0a0a !important;
+  border: 2px solid rgba(242, 194, 40, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+  padding: 4px 0 !important;
+}
+
+.react-datepicker__month-option,
+.react-datepicker__year-option {
+  color: #f5f5f5 !important;
+  padding: 8px 16px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  margin: 2px 6px !important;
+  border-radius: 6px !important;
+}
+
+.react-datepicker__month-option:hover,
+.react-datepicker__year-option:hover {
+  background: rgba(242, 194, 40, 0.2) !important;
+  color: #F2C228 !important;
+}
+
+.react-datepicker__month-option--selected,
+.react-datepicker__year-option--selected {
+  background: linear-gradient(135deg, #C29A1F 0%, #F2C228 100%) !important;
+  color: #0a0a0a !important;
+  font-weight: 700 !important;
+}
+
+/* FIXED: Dropdown select styling - gold text instead of black */
+.react-datepicker__month-dropdown-container select,
+.react-datepicker__year-dropdown-container select {
+  background: #0f0f0f !important;
+  color: #F2C228 !important;
+  border: 1px solid rgba(242, 194, 40, 0.3) !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-datepicker__month-dropdown-container select:hover,
+.react-datepicker__year-dropdown-container select:hover {
+  border-color: rgba(242, 194, 40, 0.5) !important;
+  background: #1a1a1a !important;
+}
+
+.react-datepicker__month-dropdown-container select option,
+.react-datepicker__year-dropdown-container select option {
+  background: #0a0a0a !important;
+  color: #f5f5f5 !important;
+  padding: 8px !important;
+}
+
+.react-datepicker__month-dropdown-container select option:checked,
+.react-datepicker__year-dropdown-container select option:checked {
+  background: #F2C228 !important;
+  color: #0a0a0a !important;
+}
+
+.react-datepicker__close-icon {
+  padding-right: 10px !important;
+}
+
+.react-datepicker__close-icon::after {
+  background-color: #F2C228 !important;
+  color: #0a0a0a !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  padding: 2px !important;
+  border-radius: 50% !important;
+  width: 20px !important;
+  height: 20px !important;
+  line-height: 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-datepicker__close-icon:hover::after {
+  background-color: #F5D563 !important;
+}
+
+.react-datepicker__triangle {
+  display: none !important;
+}
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+/* Month/Year Dropdown Scrollbar */
+.react-datepicker__year-dropdown--scrollable {
+  max-height: 220px !important;
+  overflow-y: auto !important;
+}
+
+.react-datepicker__year-dropdown--scrollable::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.react-datepicker__year-dropdown--scrollable::-webkit-scrollbar-track {
+  background: #0a0a0a !important;
+  border-radius: 10px !important;
+  margin: 6px 0 !important;
+}
+
+.react-datepicker__year-dropdown--scrollable::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #C29A1F 0%, #F2C228 100%) !important;
+  border-radius: 10px !important;
+}
+
+.react-datepicker__year-dropdown--scrollable::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #F2C228 0%, #F5D563 100%) !important;
+}
+
+/* Week Numbers (if enabled) */
+.react-datepicker__week-number {
+  color: #F2C228 !important;
+  font-weight: 600 !important;
+  opacity: 0.5 !important;
+}
+
+
+/* Custom Select Dropdown Styling - FitNix Theme */
+select.fitnix-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F2C228' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2em;
+  padding-right: 3rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+select.fitnix-input:hover {
+  border-color: rgba(242, 194, 40, 0.4);
+  background-color: rgba(26, 26, 26, 0.6);
+}
+
+select.fitnix-input:focus {
+  background-color: rgba(26, 26, 26, 0.8);
+}
+
+/* Dropdown Options Styling */
+select.fitnix-input option {
+  background-color: #0a0a0a;
+  color: #f5f5f5;
+  padding: 12px 16px;
+  font-weight: 500;
+  border-radius: 0;
+}
+
+select.fitnix-input option:first-child {
+  color: #F2C228;
+  font-weight: 600;
+}
+
+select.fitnix-input option:checked,
+select.fitnix-input option:hover {
+  background: linear-gradient(135deg, #C29A1F 0%, #F2C228 100%);
+  color: #0a0a0a;
+  font-weight: 600;
+}
+
+/* Specific styling for package and trainer dropdowns */
+select.fitnix-input[value=""] {
+  color: rgba(245, 245, 245, 0.5);
+}
+
+select.fitnix-input:not([value=""]) {
+  color: #f5f5f5;
+  font-weight: 500;
+}
+
+/* Firefox specific fixes */
+@-moz-document url-prefix() {
+  select.fitnix-input {
+    padding-right: 2.5rem;
+  }
+}
+
+/* Improve option contrast in different browsers */
+select.fitnix-input option[value=""] {
+  color: #F2C228;
+  font-style: italic;
+}
+
+/* Better spacing for long option text */
+select.fitnix-input option {
+  line-height: 1.6;
+  min-height: 2.5rem;
 }

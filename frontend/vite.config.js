@@ -5,6 +5,16 @@ export default defineConfig({
   plugins: [react()],
   base: '/',
   publicDir: 'public',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    // Ensure index.html is always generated for SPA routing
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      }
+    }
+  },
   server: {
     port: 3000,
     proxy: {

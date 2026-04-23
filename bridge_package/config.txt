@@ -1,0 +1,23 @@
+# GOFIT Gym Attendance Bridge Configuration
+# Edit these values to match your setup
+
+# Controller Settings
+# IP address of the MC-5924T access controller
+CONTROLLER_IP=192.168.1.150
+
+# Port number of the controller (usually 8000)
+CONTROLLER_PORT=8000
+
+# Backend Settings
+# Your PythonAnywhere web app URL (without trailing slash)
+APP_URL=https://yourusername.pythonanywhere.com
+
+# Secret key for authentication (must match backend .env file)
+SECRET_KEY=change-this-secret-key-in-production
+
+# Timing Settings
+# How often to poll controller for new records (in seconds)
+POLL_INTERVAL=30
+
+# How often to send heartbeat to backend (in seconds)
+HEARTBEAT_INTERVAL=300

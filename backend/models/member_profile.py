@@ -11,12 +11,17 @@ class MemberProfile(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False, unique=True)
     member_number = db.Column(db.Integer, unique=True, nullable=True)
+    card_id = db.Column(db.String(20), unique=True, nullable=True, index=True)  # RFID card number
     full_name = db.Column(db.String(100), nullable=False, default='')
     phone = db.Column(db.String(20), unique=False, nullable=True, index=True)
     cnic = db.Column(db.String(20), unique=False, nullable=True, index=True)
-    email = db.Column(db.String(100), unique=False, nullable=True, index=True)
+    email = db.Column(db.String(100), unique=False, nullable=True, index=False)  # Removed unique constraint
     gender = db.Column(db.String(10))
     date_of_birth = db.Column(db.Date)
+    father_name = db.Column(db.String(100), nullable=True)
+    weight_kg = db.Column(db.Numeric(5, 2), nullable=True)  # Weight in kilograms (e.g., 75.50)
+    blood_group = db.Column(db.String(10), nullable=True)  # e.g., A+, B-, O+, AB+
+    address = db.Column(db.Text, nullable=True)
     admission_date = db.Column(db.Date)
     admission_fee_paid = db.Column(db.Boolean, default=False, nullable=False)
     current_package_id = db.Column(db.String(36), db.ForeignKey('packages.id'))
@@ -41,12 +46,17 @@ class MemberProfile(db.Model):
             'id': self.id,
             'user_id': self.user_id,
             'member_number': self.member_number,
+            'card_id': self.card_id,
             'full_name': self.full_name,
             'phone': self.phone,
             'cnic': self.cnic,
             'email': self.email,
             'gender': self.gender,
             'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'father_name': self.father_name,
+            'weight_kg': float(self.weight_kg) if self.weight_kg else None,
+            'blood_group': self.blood_group,
+            'address': self.address,
             'admission_date': self.admission_date.isoformat() if self.admission_date else None,
             'admission_fee_paid': self.admission_fee_paid,
             'current_package_id': self.current_package_id,

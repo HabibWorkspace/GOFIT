@@ -20,6 +20,14 @@ class TrainerProfile(db.Model):
     salary_rate = db.Column(db.Numeric(10, 2), nullable=False)
     hire_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     availability = db.Column(db.Text, nullable=True)  # JSON string storing weekly schedule
+    
+    # Commission fields
+    monthly_charge = db.Column(db.Numeric(10, 2), default=0, nullable=False)  # Total charge billed to member
+    gym_commission_percent = db.Column(db.Numeric(5, 2), default=50.00, nullable=False)  # Gym's cut percentage
+    trainer_commission_percent = db.Column(db.Numeric(5, 2), default=50.00, nullable=False)  # Trainer's cut percentage
+    bank_account = db.Column(db.String(100), nullable=True)  # Bank account for payments
+    joining_date = db.Column(db.Date, nullable=True)  # Official joining date
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -43,6 +51,11 @@ class TrainerProfile(db.Model):
             'salary_rate': float(self.salary_rate),
             'hire_date': self.hire_date.isoformat(),
             'availability': self.availability,
+            'monthly_charge': float(self.monthly_charge),
+            'gym_commission_percent': float(self.gym_commission_percent),
+            'trainer_commission_percent': float(self.trainer_commission_percent),
+            'bank_account': self.bank_account,
+            'joining_date': self.joining_date.isoformat() if self.joining_date else None,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
         }

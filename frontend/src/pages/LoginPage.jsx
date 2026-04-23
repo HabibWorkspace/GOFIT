@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../services/api'
-import logo from '/fitcore-logo.png'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -230,9 +229,9 @@ export default function LoginPage() {
         top: ${y}%;
         width: ${size}px;
         height: ${size}px;
-        color: #B6FF00;
+        color: #F2C228;
         opacity: ${0.08 + Math.random() * 0.05};
-        filter: drop-shadow(0 4px 12px rgba(182, 255, 0, 0.2));
+        filter: drop-shadow(0 4px 12px rgba(242, 194, 40, 0.25));
         animation: ${animationStyle};
         transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         pointer-events: auto;
@@ -274,11 +273,11 @@ export default function LoginPage() {
             
             element.style.transform = `translate(${pushX}px, ${pushY}px) scale(1.2)`
             element.style.opacity = '0.25'
-            element.style.filter = 'drop-shadow(0 6px 16px rgba(182, 255, 0, 0.4))'
+            element.style.filter = 'drop-shadow(0 6px 16px rgba(242, 194, 40, 0.5))'
           } else {
             element.style.transform = 'translate(0, 0) scale(1)'
             element.style.opacity = '0.1'
-            element.style.filter = 'drop-shadow(0 4px 12px rgba(182, 255, 0, 0.2))'
+            element.style.filter = 'drop-shadow(0 4px 12px rgba(242, 194, 40, 0.25))'
           }
         })
         
@@ -290,7 +289,7 @@ export default function LoginPage() {
       if (e.target.classList.contains('floating-fitness-icon')) {
         e.target.style.transform = 'scale(1.4) rotate(15deg)'
         e.target.style.opacity = '0.35'
-        e.target.style.filter = 'drop-shadow(0 8px 20px rgba(182, 255, 0, 0.5))'
+        e.target.style.filter = 'drop-shadow(0 8px 20px rgba(242, 194, 40, 0.6))'
       }
     }
 
@@ -298,7 +297,7 @@ export default function LoginPage() {
       if (e.target.classList.contains('floating-fitness-icon')) {
         e.target.style.transform = 'scale(1)'
         e.target.style.opacity = '0.1'
-        e.target.style.filter = 'drop-shadow(0 4px 12px rgba(182, 255, 0, 0.2))'
+        e.target.style.filter = 'drop-shadow(0 4px 12px rgba(242, 194, 40, 0.25))'
       }
     }
 
@@ -331,12 +330,19 @@ export default function LoginPage() {
       localStorage.setItem('token', access_token)
       localStorage.setItem('user', JSON.stringify(user))
 
-      if (user.role === 'ADMIN' || user.role === 'admin') {
+      // Normalize role to lowercase for comparison
+      const userRole = user.role?.toLowerCase()
+
+      if (userRole === 'super_admin') {
+        navigate('/super-admin')
+      } else if (userRole === 'admin' || userRole === 'receptionist') {
         navigate('/admin')
-      } else if (user.role === 'TRAINER' || user.role === 'trainer') {
+      } else if (userRole === 'scanner') {
+        navigate('/scanner')
+      } else if (userRole === 'trainer') {
         navigate('/trainer')
-      } else if (user.role === 'MEMBER' || user.role === 'member') {
-        navigate('/member')
+      } else if (userRole === 'member') {
+        navigate('/member/profile')
       } else {
         setError('Unknown user role')
       }
@@ -348,9 +354,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-fitnix-black">
+    <div className="relative min-h-screen overflow-hidden bg-fitnix-dark">
       {/* Dark Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-fitnix-black via-fitnix-charcoal to-fitnix-black"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-fitnix-dark via-fitnix-dark-light to-fitnix-dark"></div>
 
       {/* Floating Fitness Icons Container */}
       <div 
@@ -368,25 +374,25 @@ export default function LoginPage() {
           {/* Logo with glow */}
           <div className="flex justify-center mb-6">
             <div className="relative">
-              <div className="absolute inset-0 bg-fitnix-lime/30 blur-2xl rounded-full"></div>
+              <div className="absolute inset-0 bg-fitnix-gold/40 blur-2xl rounded-full"></div>
               <img 
-                src={logo} 
-                alt="FitCore Logo" 
-                className="relative w-24 h-24 object-contain animate-pulse-slow" 
+                src="/logo.PNG" 
+                alt="GOFIT Logo" 
+                className="relative w-40 h-40 object-contain animate-pulse-slow" 
               />
             </div>
           </div>
 
           {/* Title */}
           <h1 className="text-5xl font-bold text-center mb-2">
-            <span className="fitnix-gradient-text">FitCore</span>
+            <span className="fitnix-gradient-text">GOFIT</span>
           </h1>
-          <p className="text-center text-fitnix-off-white/60 mb-8 text-sm">
-            Your Fitness Partner
+          <p className="text-center text-fitnix-off-white/60 mb-8 text-sm font-semibold tracking-widest">
+            ACTIVE LIFESTYLE
           </p>
 
           {/* Dark Theme Login Card */}
-          <div className="backdrop-blur-xl bg-fitnix-charcoal/95 border-2 border-fitnix-lime/30 rounded-2xl shadow-2xl shadow-fitnix-lime/20 p-8 hover:border-fitnix-lime/50 transition-all duration-300">
+          <div className="backdrop-blur-xl bg-fitnix-dark-light/95 border-2 border-fitnix-gold/40 rounded-2xl shadow-2xl shadow-fitnix-gold/30 p-8 hover:border-fitnix-gold/60 transition-all duration-300">
             <h2 className="text-2xl font-bold text-fitnix-off-white mb-6 text-center">Welcome Back</h2>
 
             {/* Error Message */}
@@ -410,7 +416,7 @@ export default function LoginPage() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-fitnix-lime/60 group-hover:text-fitnix-lime transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-fitnix-gold/70 group-hover:text-fitnix-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -419,7 +425,7 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
-                    className="w-full pl-10 pr-4 py-3 bg-fitnix-black/50 border-2 border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-lime focus:ring-2 focus:ring-fitnix-lime/20 transition-all duration-300 hover:border-fitnix-lime/50"
+                    className="w-full pl-10 pr-4 py-3 bg-fitnix-dark-darker/50 border-2 border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-gold focus:ring-2 focus:ring-fitnix-gold/30 transition-all duration-300 hover:border-fitnix-gold/50"
                     placeholder="Enter your username"
                     required
                   />
@@ -433,7 +439,7 @@ export default function LoginPage() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-fitnix-lime/60 group-hover:text-fitnix-lime transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-fitnix-gold/70 group-hover:text-fitnix-gold transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
@@ -442,14 +448,14 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
-                    className="w-full pl-10 pr-12 py-3 bg-fitnix-black/50 border-2 border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-lime focus:ring-2 focus:ring-fitnix-lime/20 transition-all duration-300 hover:border-fitnix-lime/50"
+                    className="w-full pl-10 pr-12 py-3 bg-fitnix-dark-darker/50 border-2 border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-gold focus:ring-2 focus:ring-fitnix-gold/30 transition-all duration-300 hover:border-fitnix-gold/50"
                     placeholder="Enter your password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-fitnix-off-white/60 hover:text-fitnix-lime transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-fitnix-off-white/60 hover:text-fitnix-gold transition-colors"
                     title={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
@@ -470,7 +476,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-fitnix-lime to-fitnix-dark-lime hover:from-fitnix-dark-lime hover:to-fitnix-lime text-fitnix-black font-bold py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-lg hover:shadow-fitnix-lime/50 active:scale-95 relative overflow-hidden"
+                className="w-full bg-gradient-to-r from-fitnix-gold to-fitnix-gold-light hover:from-fitnix-gold-dark hover:to-fitnix-gold text-fitnix-dark font-bold py-3 px-4 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-lg hover:shadow-fitnix-gold/50 active:scale-95 relative overflow-hidden"
               >
                 {loading && (
                   <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></span>
@@ -478,8 +484,8 @@ export default function LoginPage() {
                 {loading ? (
                   <span className="flex items-center justify-center relative z-10">
                     <span className="relative flex h-5 w-5 mr-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fitnix-black opacity-40"></span>
-                      <span className="relative inline-flex rounded-full h-5 w-5 border-2 border-fitnix-black border-t-transparent animate-spin"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fitnix-dark opacity-40"></span>
+                      <span className="relative inline-flex rounded-full h-5 w-5 border-2 border-fitnix-dark border-t-transparent animate-spin"></span>
                     </span>
                     Logging in...
                   </span>
@@ -490,16 +496,16 @@ export default function LoginPage() {
               
               {/* Loading message for slow backend */}
               {loading && (
-                <p className="text-center text-fitnix-lime/70 text-xs mt-2 animate-pulse">
-                  First login may take up to 60 seconds while server wakes up...
-                </p>
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-fitnix-gold"></div>
+                </div>
               )}
             </form>
           </div>
 
           {/* Footer */}
           <p className="text-center text-fitnix-off-white/40 text-sm mt-6">
-            © 2026 FitCore. All rights reserved.
+            © 2026 GOFIT. All rights reserved.
           </p>
         </div>
       </div>

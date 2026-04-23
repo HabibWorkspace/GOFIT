@@ -1,11 +1,108 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import logo from '/fitcore-logo.png'
+import NotificationPopup from '../NotificationPopup'
+import Pusher from 'pusher-js'
 
 export default function AdminLayout({ children, onLogout }) {
   const location = useLocation()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [notification, setNotification] = useState(null)
+
+  // Initialize Pusher for real-time notifications
+  useEffect(() => {
+    let pusher = null
+    let channel = null
+    let isCleaningUp = false
+    let isConnected = false
+    
+    try {
+      const pusherKey = import.meta.env.VITE_PUSHER_KEY
+      const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'
+      
+      if (pusherKey) {
+        // Configure Pusher with minimal config to avoid errors
+        pusher = new Pusher(pusherKey, {
+          cluster: pusherCluster,
+          forceTLS: true
+        })
+        
+        // Handle connection state changes
+        pusher.connection.bind('state_change', (states) => {
+          if (!isCleaningUp) {
+            console.log('Pusher state changed:', states.current)
+            isConnected = states.current === 'connected'
+          }
+        })
+        
+        // Handle connection errors (suppress during cleanup)
+        pusher.connection.bind('error', (err) => {
+          if (!isCleaningUp) {
+            console.error('Pusher connection error:', err)
+          }
+        })
+        
+        // Subscribe to channel
+        channel = pusher.subscribe('admin-notifications')
+        
+        // Listen for member check-in events
+        channel.bind('member-checkin', (data) => {
+          if (!isCleaningUp) {
+            console.log('AdminLayout - Member check-in notification:', data)
+            
+            // Show notification popup
+            setNotification(data)
+            
+            // Play notification sound (optional)
+            try {
+              const audio = new Audio('/notification.mp3')
+              audio.volume = 0.5
+              audio.play().catch(() => {}) // Silently ignore audio errors
+            } catch (err) {
+              // Silently ignore audio errors
+            }
+          }
+        })
+        
+        console.log('AdminLayout - Pusher initialized successfully')
+      } else {
+        console.warn('Pusher key not configured. Real-time notifications disabled.')
+      }
+    } catch (err) {
+      if (!isCleaningUp) {
+        console.error('Failed to initialize Pusher:', err)
+      }
+    }
+    
+    return () => {
+      // Set cleanup flag to prevent state updates and suppress errors during cleanup
+      isCleaningUp = true
+      
+      // Cleanup Pusher connection gracefully
+      if (channel) {
+        try {
+          channel.unbind_all()
+          // Only unsubscribe if pusher is connected
+          if (pusher && isConnected && pusher.connection.state === 'connected') {
+            channel.unsubscribe()
+          }
+        } catch (err) {
+          // Silently ignore cleanup errors
+        }
+      }
+      
+      if (pusher) {
+        try {
+          // Disconnect pusher only if it's connected
+          if (isConnected && pusher.connection.state !== 'disconnected') {
+            pusher.disconnect()
+          }
+        } catch (err) {
+          // Silently ignore cleanup errors
+        }
+      }
+    }
+  }, [])
 
   const navItems = [
     { 
@@ -54,11 +151,11 @@ export default function AdminLayout({ children, onLogout }) {
       )
     },
     { 
-      path: '/admin/analytics', 
-      label: 'Analytics', 
+      path: '/admin/supplements', 
+      label: 'Supplements', 
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
         </svg>
       )
     },
@@ -67,16 +164,25 @@ export default function AdminLayout({ children, onLogout }) {
       label: 'Attendance', 
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       )
     },
     { 
-      path: '/admin/device-mappings', 
-      label: 'Device Mappings', 
+      path: '/admin/qr-scanner', 
+      label: 'QR Scanner', 
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+        </svg>
+      )
+    },
+    { 
+      path: '/admin/analytics', 
+      label: 'Analytics', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       )
     },
@@ -93,17 +199,28 @@ export default function AdminLayout({ children, onLogout }) {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-fitnix-black via-fitnix-charcoal to-fitnix-black">
+    <div className="min-h-screen bg-black">
+      {/* Notification Popup - Global for all admin pages */}
+      {notification && (
+        <NotificationPopup
+          member={notification}
+          onClose={() => setNotification(null)}
+        />
+      )}
+      
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-fitnix-charcoal/95 backdrop-blur-xl border-b border-fitnix-lime/10 z-50 px-4 py-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-fitnix-dark-light/60 backdrop-blur-xl border-b border-fitnix-gold/10 z-50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <img src={logo} alt="FitCore Logo" className="w-8 h-8 object-contain" />
-            <div className="text-lg font-extrabold fitnix-gradient-text">FitCore</div>
+            <img src="/logo.PNG" alt="GOFIT Logo" className="w-12 h-12 object-contain" />
+            <div>
+              <div className="text-lg font-extrabold fitnix-gradient-text">GOFIT</div>
+              <div className="text-[9px] text-fitnix-off-white/60 font-semibold tracking-widest">ACTIVE LIFESTYLE</div>
+            </div>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-fitnix-off-white p-2 hover:bg-fitnix-lime/10 rounded-lg transition-colors"
+            className="text-fitnix-off-white p-2 hover:bg-fitnix-gold/10 rounded-lg transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMobileMenuOpen ? (
@@ -125,42 +242,47 @@ export default function AdminLayout({ children, onLogout }) {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-full bg-fitnix-charcoal/95 backdrop-blur-xl border-r border-fitnix-lime/10 transition-all duration-300 z-50 
+      <aside className={`fixed left-0 top-0 h-full bg-fitnix-dark-light/60 backdrop-blur-xl border-r border-fitnix-gold/10 transition-all duration-300 z-50 
         ${isCollapsed ? 'w-20' : 'w-64'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}>
         {/* Logo */}
-        <div className="hidden lg:flex items-center justify-center p-4 border-b border-fitnix-lime/10">
+        <div className="hidden lg:flex items-center justify-center p-4 border-b border-fitnix-gold/10">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="absolute inset-0 bg-fitnix-lime/20 blur-lg rounded-full"></div>
+                <div className="absolute inset-0 bg-fitnix-gold/30 blur-lg rounded-full"></div>
                 <img 
-                  src={logo} 
-                  alt="FitCore Logo" 
-                  className="relative w-10 h-10 object-contain" 
+                  src="/logo.PNG" 
+                  alt="GOFIT Logo" 
+                  className="relative w-16 h-16 object-contain" 
                 />
               </div>
-              <div className="text-xl font-extrabold fitnix-gradient-text">
-                FitCore
+              <div>
+                <div className="text-2xl font-extrabold fitnix-gradient-text">
+                  GOFIT
+                </div>
+                <div className="text-[10px] text-fitnix-off-white/60 font-semibold tracking-widest">
+                  ACTIVE LIFESTYLE
+                </div>
               </div>
             </div>
           )}
           {isCollapsed && (
             <div className="relative flex-shrink-0">
-              <div className="absolute inset-0 bg-fitnix-lime/20 blur-lg rounded-full"></div>
+              <div className="absolute inset-0 bg-fitnix-gold/30 blur-lg rounded-full"></div>
               <img 
-                src={logo} 
-                alt="FitCore Logo" 
-                className="relative w-12 h-12 object-contain" 
+                src="/logo.PNG" 
+                alt="GOFIT Logo" 
+                className="relative w-16 h-16 object-contain" 
               />
             </div>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="p-3 space-y-1 flex-1 overflow-y-auto mt-16 lg:mt-0">
+        <nav className="p-3 space-y-1 overflow-y-auto mt-16 lg:mt-0 pb-32" style={{ maxHeight: 'calc(100vh - 120px)' }}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path
             return (
@@ -170,12 +292,12 @@ export default function AdminLayout({ children, onLogout }) {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-fitnix-lime/20 to-fitnix-dark-lime/20 text-fitnix-lime border border-fitnix-lime/30'
-                    : 'text-fitnix-off-white/70 hover:bg-fitnix-black/30 hover:text-fitnix-off-white border border-transparent hover:border-fitnix-lime/20'
+                    ? 'bg-gradient-to-r from-fitnix-gold/20 to-fitnix-gold-dark/20 text-fitnix-gold border border-fitnix-gold/40'
+                    : 'text-fitnix-off-white/70 hover:bg-fitnix-dark-darker/30 hover:text-fitnix-off-white border border-transparent hover:border-fitnix-gold/30'
                 }`}
                 title={isCollapsed ? item.label : ''}
               >
-                <span className={isActive ? 'text-fitnix-lime' : 'text-fitnix-off-white/70 group-hover:text-fitnix-off-white transition-colors duration-200'}>
+                <span className={isActive ? 'text-fitnix-gold' : 'text-fitnix-off-white/70 group-hover:text-fitnix-off-white transition-colors duration-200'}>
                   {item.icon}
                 </span>
                 {!isCollapsed && (
@@ -187,11 +309,11 @@ export default function AdminLayout({ children, onLogout }) {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 border-t border-fitnix-lime/10 space-y-2">
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-fitnix-gold/10 space-y-2 bg-fitnix-dark-light backdrop-blur-xl">
           {/* Collapse Button - Desktop Only */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`hidden lg:flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-fitnix-off-white hover:bg-fitnix-lime/10 hover:text-fitnix-lime border border-transparent hover:border-fitnix-lime/20 group ${isCollapsed ? 'justify-center' : ''}`}
+            className={`hidden lg:flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 w-full text-fitnix-off-white hover:bg-fitnix-gold/10 hover:text-fitnix-gold border border-transparent hover:border-fitnix-gold/30 group ${isCollapsed ? 'justify-center' : ''}`}
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

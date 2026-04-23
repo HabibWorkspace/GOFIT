@@ -16,7 +16,6 @@ import {
 } from 'chart.js'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
-import logo from '/fitcore-logo.png'
 
 ChartJS.register(
   CategoryScale,
@@ -150,9 +149,9 @@ export default function AdminAnalytics() {
       },
       tooltip: {
         backgroundColor: '#1A1A1A',
-        titleColor: '#B6FF00',
+        titleColor: '#F2C228',
         bodyColor: '#F5F5F5',
-        borderColor: '#B6FF00',
+        borderColor: '#F2C228',
         borderWidth: 1
       }
     },
@@ -175,8 +174,8 @@ export default function AdminAnalytics() {
         datasets: [{
           label: 'Revenue (Rs.)',
           data: [],
-          borderColor: '#B6FF00',
-          backgroundColor: 'rgba(182, 255, 0, 0.1)',
+          borderColor: '#F2C228',
+          backgroundColor: 'rgba(242, 194, 40, 0.1)',
           fill: true,
           tension: 0.4
         }]
@@ -187,11 +186,11 @@ export default function AdminAnalytics() {
       datasets: [{
         label: 'Revenue (Rs.)',
         data: revenueTrend.revenue,
-        borderColor: '#B6FF00',
-        backgroundColor: 'rgba(182, 255, 0, 0.1)',
+        borderColor: '#F2C228',
+        backgroundColor: 'rgba(242, 194, 40, 0.1)',
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: '#B6FF00',
+        pointBackgroundColor: '#F2C228',
         pointBorderColor: '#0B0B0B',
         pointBorderWidth: 2,
         pointRadius: 5,
@@ -232,29 +231,22 @@ export default function AdminAnalytics() {
       packageMap[pkg.id] = pkg.name
     })
 
-    // Count members by package
+    // Count members by package (only members WITH packages)
     const packageCounts = {}
-    let noPackageCount = 0
     
     members.forEach(member => {
       if (member.current_package_id && packageMap[member.current_package_id]) {
         const packageName = packageMap[member.current_package_id]
         packageCounts[packageName] = (packageCounts[packageName] || 0) + 1
-      } else {
-        noPackageCount++
       }
+      // Skip members without packages - don't count them
     })
-
-    // Add "No Package" if there are members without packages
-    if (noPackageCount > 0) {
-      packageCounts['No Package'] = noPackageCount
-    }
 
     // If no members have packages assigned, show empty state
     const labels = Object.keys(packageCounts)
     if (labels.length === 0) {
       return {
-        labels: ['No Assignments'],
+        labels: ['No Active Packages'],
         datasets: [{
           data: [1],
           backgroundColor: ['#2A2A2A'],
@@ -322,28 +314,28 @@ export default function AdminAnalytics() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-fitnix-black flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-fitnix-dark flex items-center justify-center z-50">
         <div className="relative flex flex-col items-center">
           {/* Outer rotating ring */}
           <div className="relative w-24 h-24">
-            <div className="absolute inset-0 rounded-full border-4 border-fitnix-charcoal/30"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-lime border-r-fitnix-lime animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-dark-lime border-l-fitnix-dark-lime animate-spin-reverse"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-fitnix-dark-light/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-gold border-r-fitnix-gold animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-gold-dark border-l-fitnix-gold-dark animate-spin-reverse"></div>
             {/* Logo in center */}
             <div className="absolute inset-0 flex items-center justify-center">
               <img 
-                src={logo} 
+                src="/logo.PNG" 
                 alt="FitNix Logo" 
                 className="w-14 h-14 object-contain animate-pulse" 
                 style={{ 
-                  filter: 'drop-shadow(0 0 8px rgba(182, 255, 0, 0.3))',
+                  filter: 'drop-shadow(0 0 8px rgba(242, 194, 40, 0.3))',
                   mixBlendMode: 'screen'
                 }} 
               />
             </div>
           </div>
           {/* Loading text */}
-          <p className="mt-4 text-fitnix-lime font-semibold animate-pulse">Loading...</p>
+          <p className="mt-4 text-fitnix-gold font-semibold animate-pulse">Loading...</p>
         </div>
       </div>
     )
@@ -378,21 +370,21 @@ export default function AdminAnalytics() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {revenue && (
-            <div className="fitnix-card-glow border-2 border-fitnix-lime/20 hover:border-fitnix-lime/40 hover:shadow-[0_0_20px_rgba(182,255,0,0.3)] transform hover:scale-105 transition-all duration-300">
+            <div className="fitnix-card-glow border-2 border-fitnix-gold/20 hover:border-fitnix-gold/40 hover:shadow-[0_0_20px_rgba(182,255,0,0.3)] transform hover:scale-105 transition-all duration-300">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-fitnix-off-white/60 text-sm font-semibold mb-2 uppercase tracking-wide">
                     Monthly Recurring Revenue
                   </h3>
-                  <p className="text-2xl sm:text-3xl font-bold text-fitnix-lime">
+                  <p className="text-2xl sm:text-3xl font-bold text-fitnix-gold">
                     Rs. {revenue.projected_monthly_revenue?.toLocaleString() || 0}
                   </p>
                   <p className="text-fitnix-off-white/60 text-xs mt-2">
                     {revenue.active_packages_count || 0} active members
                   </p>
                 </div>
-                <div className="p-3 bg-fitnix-lime/10 rounded-lg">
-                  <svg className="w-6 h-6 text-fitnix-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-3 bg-fitnix-gold/10 rounded-lg">
+                  <svg className="w-6 h-6 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -474,9 +466,9 @@ export default function AdminAnalytics() {
                       },
                       tooltip: {
                         backgroundColor: '#1A1A1A',
-                        titleColor: '#B6FF00',
+                        titleColor: '#F2C228',
                         bodyColor: '#F5F5F5',
-                        borderColor: '#B6FF00',
+                        borderColor: '#F2C228',
                         borderWidth: 1
                       }
                     }
