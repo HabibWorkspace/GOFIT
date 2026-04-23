@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
-import logo from '/fitcore-logo.png'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 
 export default function AdminTrainers() {
   const [trainers, setTrainers] = useState([])
@@ -19,7 +20,6 @@ export default function AdminTrainers() {
     date_of_birth: '',
     phone: '',
     cnic: '',
-    email: '',
     specialization: '',
     salary_rate: '',
     availability: '',
@@ -66,7 +66,6 @@ export default function AdminTrainers() {
           date_of_birth: formData.date_of_birth,
           phone: formData.phone,
           cnic: formData.cnic,
-          email: formData.email,
           specialization: formData.specialization,
           salary_rate: formData.salary_rate,
           availability: formData.availability,
@@ -82,7 +81,6 @@ export default function AdminTrainers() {
           date_of_birth: formData.date_of_birth,
           phone: formData.phone,
           cnic: formData.cnic,
-          email: formData.email,
           specialization: formData.specialization,
           salary_rate: formData.salary_rate,
           availability: formData.availability,
@@ -91,7 +89,7 @@ export default function AdminTrainers() {
         setSuccess('Trainer created successfully')
       }
       
-      setFormData({ username: '', password: '', full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', email: '', specialization: '', salary_rate: '', availability: '' })
+      setFormData({ username: '', password: '', full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
       setShowForm(false)
       fetchTrainers()
     } catch (err) {
@@ -119,7 +117,6 @@ export default function AdminTrainers() {
       date_of_birth: dobFormatted,
       phone: trainer.phone || '',
       cnic: trainer.cnic || '',
-      email: trainer.email || '',
       specialization: trainer.specialization || '',
       salary_rate: trainer.salary_rate || '',
       availability: trainer.availability || '',
@@ -138,7 +135,7 @@ export default function AdminTrainers() {
 
   const handleCancelEdit = () => {
     setEditingTrainer(null)
-    setFormData({ full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', email: '', specialization: '', salary_rate: '', availability: '' })
+    setFormData({ full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
     setShowForm(false)
     setShowPassword(false)
     setError('')
@@ -178,28 +175,28 @@ export default function AdminTrainers() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-fitnix-black flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-fitnix-dark flex items-center justify-center z-50">
         <div className="relative flex flex-col items-center">
           {/* Outer rotating ring */}
           <div className="relative w-24 h-24">
-            <div className="absolute inset-0 rounded-full border-4 border-fitnix-charcoal/30"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-lime border-r-fitnix-lime animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-dark-lime border-l-fitnix-dark-lime animate-spin-reverse"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-fitnix-dark-light/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-gold border-r-fitnix-gold animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-gold-dark border-l-fitnix-gold-dark animate-spin-reverse"></div>
             {/* Logo in center */}
             <div className="absolute inset-0 flex items-center justify-center">
               <img 
-                src={logo} 
+                src="/logo.PNG" 
                 alt="FitNix Logo" 
                 className="w-14 h-14 object-contain animate-pulse" 
                 style={{ 
-                  filter: 'drop-shadow(0 0 8px rgba(182, 255, 0, 0.3))',
+                  filter: 'drop-shadow(0 0 8px rgba(242, 194, 40, 0.3))',
                   mixBlendMode: 'screen'
                 }} 
               />
             </div>
           </div>
           {/* Loading text */}
-          <p className="mt-4 text-fitnix-lime font-semibold animate-pulse">Loading...</p>
+          <p className="mt-4 text-fitnix-gold font-semibold animate-pulse">Loading...</p>
         </div>
       </div>
     )
@@ -221,7 +218,7 @@ export default function AdminTrainers() {
             onClick={() => {
               if (showForm && !editingTrainer) {
                 setShowForm(false)
-                setFormData({ full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', email: '', specialization: '', salary_rate: '', availability: '' })
+                setFormData({ full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
               } else if (editingTrainer) {
                 handleCancelEdit()
               } else {
@@ -260,9 +257,9 @@ export default function AdminTrainers() {
         )}
 
         {success && (
-          <div className="bg-fitnix-charcoal border border-fitnix-lime text-fitnix-off-white px-4 py-3 rounded-xl">
+          <div className="bg-fitnix-dark-light border border-fitnix-gold text-fitnix-off-white px-4 py-3 rounded-xl">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-fitnix-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {success}
@@ -278,7 +275,7 @@ export default function AdminTrainers() {
             
             {/* Personal Information */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-fitnix-lime mb-3">Personal Information</h3>
+              <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Personal Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
@@ -314,84 +311,19 @@ export default function AdminTrainers() {
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     Date of Birth
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <select
-                      value={formData.date_of_birth ? new Date(formData.date_of_birth).getDate() : ''}
-                      onChange={(e) => {
-                        const day = e.target.value
-                        if (day && formData.date_of_birth) {
-                          const date = new Date(formData.date_of_birth)
-                          date.setDate(parseInt(day))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        } else if (day) {
-                          const date = new Date()
-                          date.setDate(parseInt(day))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        }
-                      }}
-                      className="fitnix-input"
-                    >
-                      <option value="">Day</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={formData.date_of_birth ? new Date(formData.date_of_birth).getMonth() + 1 : ''}
-                      onChange={(e) => {
-                        const month = e.target.value
-                        if (month && formData.date_of_birth) {
-                          const date = new Date(formData.date_of_birth)
-                          date.setMonth(parseInt(month) - 1)
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        } else if (month) {
-                          const date = new Date()
-                          date.setMonth(parseInt(month) - 1)
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        }
-                      }}
-                      className="fitnix-input"
-                    >
-                      <option value="">Month</option>
-                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, i) => (
-                        <option key={i + 1} value={i + 1}>{month}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={formData.date_of_birth ? new Date(formData.date_of_birth).getFullYear() : ''}
-                      onChange={(e) => {
-                        const year = e.target.value
-                        if (year && formData.date_of_birth) {
-                          const date = new Date(formData.date_of_birth)
-                          date.setFullYear(parseInt(year))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        } else if (year) {
-                          const date = new Date()
-                          date.setFullYear(parseInt(year))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        }
-                      }}
-                      className="fitnix-input"
-                    >
-                      <option value="">Year</option>
-                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Enter email address"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="fitnix-input"
-                    required
+                  <DatePicker
+                    selected={formData.date_of_birth ? new Date(formData.date_of_birth) : null}
+                    onChange={(date) => setFormData({ ...formData, date_of_birth: date ? date.toISOString().split('T')[0] : '' })}
+                    dateFormat="MMM dd, yyyy"
+                    className="fitnix-input w-full"
+                    placeholderText="Select date of birth"
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
+                    maxDate={new Date()}
+                    yearDropdownItemNumber={100}
+                    scrollableYearDropdown
+                    isClearable
                   />
                 </div>
                 
@@ -454,7 +386,7 @@ export default function AdminTrainers() {
             
             {/* Availability/Timetable */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-fitnix-lime mb-3">Availability & Schedule</h3>
+              <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Availability & Schedule</h3>
               <div>
                 <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                   Available Time Slots
@@ -494,21 +426,20 @@ export default function AdminTrainers() {
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
               <thead>
-                <tr className="bg-fitnix-black border-b-2 border-fitnix-lime/30">
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Full Name</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Gender</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">DOB</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">CNIC</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Phone</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Email</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Specialization</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Charges</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Available Timings</th>
-                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Members</th>
-                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Actions</th>
+                <tr className="bg-fitnix-dark border-b-2 border-fitnix-gold/30">
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Full Name</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Gender</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">DOB</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">CNIC</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Phone</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Specialization</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Charges</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Available Timings</th>
+                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Members</th>
+                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-fitnix-charcoal/30">
+              <tbody className="bg-fitnix-dark-light/30">
                 {trainers.length === 0 ? (
                   <tr>
                     <td colSpan="11" className="px-6 py-12 text-center">
@@ -523,7 +454,7 @@ export default function AdminTrainers() {
                   </tr>
                 ) : (
                   trainers.map((trainer, index) => (
-                    <tr key={trainer.id} className={`hover:bg-fitnix-black/50 transition-colors border-b border-fitnix-lime/10 ${index % 2 === 0 ? 'bg-fitnix-charcoal/20' : 'bg-fitnix-charcoal/40'}`}>
+                    <tr key={trainer.id} className={`hover:bg-fitnix-dark/50 transition-colors border-b border-fitnix-gold/10 ${index % 2 === 0 ? 'bg-fitnix-dark-light/20' : 'bg-fitnix-dark-light/40'}`}>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.full_name || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.gender || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">
@@ -531,9 +462,8 @@ export default function AdminTrainers() {
                       </td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.cnic || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.phone || 'N/A'}</td>
-                      <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.email || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.specialization || 'N/A'}</td>
-                      <td className="px-6 py-6 text-base text-fitnix-lime font-bold whitespace-nowrap">Rs. {parseFloat(trainer.salary_rate || 0).toLocaleString()}</td>
+                      <td className="px-6 py-6 text-base text-fitnix-gold font-bold whitespace-nowrap">Rs. {parseFloat(trainer.salary_rate || 0).toLocaleString()}</td>
                       <td className="px-6 py-6 text-sm text-fitnix-off-white/80">
                         {trainer.availability ? (
                           <div className="max-w-xs truncate" title={trainer.availability}>
@@ -544,15 +474,22 @@ export default function AdminTrainers() {
                         )}
                       </td>
                       <td className="px-6 py-6 text-center">
-                        <span className="inline-flex items-center justify-center w-10 h-10 bg-fitnix-lime/20 text-fitnix-lime rounded-full font-bold border-2 border-fitnix-lime">
+                        <span className="inline-flex items-center justify-center w-10 h-10 bg-fitnix-gold/20 text-fitnix-gold rounded-full font-bold border-2 border-fitnix-gold">
                           {trainer.assigned_members_count || 0}
                         </span>
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex flex-col gap-1.5 items-center">
                           <button
+                            onClick={() => navigate(`/admin/trainers/${trainer.id}/commission`)}
+                            className="w-24 bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
+                            title="View details"
+                          >
+                            Details
+                          </button>
+                          <button
                             onClick={() => handleEdit(trainer)}
-                            className="w-24 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
+                            className="w-24 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
                             title="Edit trainer"
                           >
                             Edit
@@ -578,7 +515,7 @@ export default function AdminTrainers() {
       {/* Delete Confirmation Modal */}
       {deletingTrainer && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-fitnix-charcoal border-2 border-red-500 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
+          <div className="bg-fitnix-dark-light border-2 border-red-500 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
             {/* Warning Icon */}
             <div className="flex justify-center mb-4">
               <div className="bg-red-500/20 rounded-full p-3">
@@ -594,12 +531,11 @@ export default function AdminTrainers() {
             </h3>
 
             {/* Trainer Info */}
-            <div className="bg-fitnix-black/50 rounded-lg p-4 mb-4 border border-red-500/30">
+            <div className="bg-fitnix-dark/50 rounded-lg p-4 mb-4 border border-red-500/30">
               <p className="text-fitnix-off-white/80 text-sm mb-2">You are about to delete:</p>
-              <p className="text-fitnix-lime font-bold text-lg">{deletingTrainer.username}</p>
+              <p className="text-fitnix-gold font-bold text-lg">{deletingTrainer.username}</p>
               <p className="text-fitnix-off-white/60 text-sm">Specialization: {deletingTrainer.specialization}</p>
               {deletingTrainer.phone && <p className="text-fitnix-off-white/60 text-sm">Phone: {deletingTrainer.phone}</p>}
-              {deletingTrainer.email && <p className="text-fitnix-off-white/60 text-sm">Email: {deletingTrainer.email}</p>}
             </div>
 
             {/* Warning Message */}
@@ -611,7 +547,7 @@ export default function AdminTrainers() {
             <div className="flex gap-3">
               <button
                 onClick={cancelDelete}
-                className="flex-1 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
+                className="flex-1 bg-fitnix-dark-light hover:bg-fitnix-dark-light/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
               >
                 Cancel
               </button>

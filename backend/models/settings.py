@@ -9,6 +9,8 @@ class Settings(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     admission_fee = db.Column(db.Numeric(10, 2), default=0, nullable=False)
+    grace_period_days = db.Column(db.Integer, default=3, nullable=False)
+    trainer_commission_percent = db.Column(db.Integer, default=50, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -20,7 +22,8 @@ class Settings(db.Model):
         return {
             'id': self.id,
             'admission_fee': float(self.admission_fee),
+            'grace_period_days': self.grace_period_days,
+            'trainer_commission_percent': self.trainer_commission_percent,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
         }
-

@@ -1,0 +1,4 @@
+# Python dependencies for GOFIT Attendance Bridge
+# Install with: pip install -r requirements.txt
+
+requests>=2.28.0

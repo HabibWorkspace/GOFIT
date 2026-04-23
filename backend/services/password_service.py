@@ -1,5 +1,6 @@
 """Password hashing service using bcrypt."""
 import bcrypt
+import secrets
 from typing import Tuple
 
 
@@ -41,3 +42,13 @@ class PasswordService:
             return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
         except Exception:
             return False
+    
+    @staticmethod
+    def generate_reset_token() -> str:
+        """
+        Generate a secure random token for password reset.
+        
+        Returns:
+            A secure random token string (64 characters)
+        """
+        return secrets.token_urlsafe(48)  # Generates a 64-character URL-safe token

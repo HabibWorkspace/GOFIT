@@ -1,0 +1,128 @@
+================================================================================
+GOFIT TURNSTILE SYSTEM - OWNER'S QUICK REFERENCE CARD
+================================================================================
+
+📍 WHAT YOU NEED TO KNOW
+------------------------
+✓ Bridge software runs automatically on front desk PC
+✓ Syncs attendance from turnstile to your website every 30 seconds
+✓ No daily action needed - it just works!
+
+📋 QUICK COMMANDS
+-----------------
+Check if running:     Double-click "check_status.bat"
+View activity:        Open "bridge.log" with Notepad
+Restart service:      nssm restart GymBridge
+Stop service:         nssm stop GymBridge
+Start service:        nssm start GymBridge
+
+🔍 HOW TO CHECK IF IT'S WORKING
+-------------------------------
+1. Run "check_status.bat" → Should show "Running"
+2. Login to admin dashboard → Go to Attendance
+3. Look for bridge status → Should show 🟢 Online
+4. Scan a test card → Should appear within 30 seconds
+
+⚠️ COMMON ISSUES & FIXES
+-------------------------
+
+ISSUE: Service shows "Stopped"
+FIX: Right-click install.bat → Run as administrator
+
+ISSUE: No attendance records appearing
+FIX: 
+  1. Check service is running (check_status.bat)
+  2. Verify internet connection (ping google.com)
+  3. Check bridge.log for errors
+
+ISSUE: "Unknown cards" in dashboard
+FIX: 
+  1. Go to Members page
+  2. Edit member
+  3. Add their Card ID (8-digit number from card)
+  4. Save
+
+ISSUE: Controller timeout errors
+FIX:
+  1. Check network cable is plugged in
+  2. Ping controller: ping 192.168.1.150
+  3. Verify controller is powered on
+
+📞 EMERGENCY TROUBLESHOOTING
+-----------------------------
+If nothing works:
+1. Open bridge.log (last 20 lines show recent activity)
+2. Run: python test_connection.py
+3. Check all 4 tests pass
+4. If any fail, see TURNSTILE_DEPLOYMENT_COMPLETE_GUIDE.md
+
+🔧 CONFIGURATION FILES
+----------------------
+config.txt          = Settings (controller IP, backend URL, secret key)
+bridge.log          = Activity log (what's happening)
+pending_records.json = Offline queue (should be empty)
+
+📊 NORMAL LOG MESSAGES (These are GOOD)
+----------------------------------------
+"Bridge service started"           = Service started successfully
+"Heartbeat sent successfully"      = Backend connection OK
+"Retrieved 0 new records"          = No new scans (normal when gym quiet)
+"Retrieved X new records"          = Found X new scans
+"Synced X records"                 = Uploaded X scans to website
+
+⚠️ ERROR LOG MESSAGES (These need attention)
+---------------------------------------------
+"Controller timeout"               = Can't reach turnstile (check network)
+"Internet connection unavailable"  = No internet (records saved locally)
+"Backend HTTP error: 401"          = Wrong secret key (check config.txt)
+"Invalid secret key"               = Secret key doesn't match backend
+
+💡 DAILY ROUTINE (Optional - System runs automatically)
+--------------------------------------------------------
+Morning:
+  ✓ Run check_status.bat (verify "Running")
+  ✓ Check dashboard shows bridge 🟢 Online
+  ✓ Test scan a card (verify appears in dashboard)
+
+Weekly:
+  ✓ Open bridge.log (check for errors)
+  ✓ Verify pending_records.json is empty
+
+Monthly:
+  ✓ Review log file size (auto-rotates at 10MB)
+  ✓ Delete old log files if needed
+
+📍 IMPORTANT LOCATIONS
+----------------------
+Bridge Package:     C:\...\bridge_package\
+Service Name:       GymBridge
+Backend URL:        https://yourusername.pythonanywhere.com
+Controller IP:      192.168.1.150
+PC IP:              192.168.1.20 (or auto-assigned)
+
+🎯 SUCCESS INDICATORS
+---------------------
+✅ check_status.bat shows "Running"
+✅ Dashboard shows 🟢 Online
+✅ Card scans appear within 30 seconds
+✅ No errors in bridge.log
+✅ Members can enter with cards
+
+📞 NEED HELP?
+-------------
+1. Check bridge.log for error details
+2. Run check_status.bat
+3. See TURNSTILE_DEPLOYMENT_COMPLETE_GUIDE.md
+4. Contact system administrator with:
+   - Service status output
+   - Last 50 lines of bridge.log
+   - Network test results (ping 192.168.1.150)
+
+================================================================================
+REMEMBER: The system runs automatically. You only need to check if there's
+a problem. If members can scan cards and attendance appears in dashboard,
+everything is working perfectly!
+================================================================================
+
+Version: 1.0
+Last Updated: April 2026

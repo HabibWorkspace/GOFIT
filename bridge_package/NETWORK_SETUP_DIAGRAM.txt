@@ -1,0 +1,252 @@
+================================================================================
+GOFIT TURNSTILE SYSTEM - NETWORK SETUP DIAGRAM
+================================================================================
+
+PHYSICAL SETUP
+--------------
+
+                    ┌─────────────────────────────────┐
+                    │      INTERNET ROUTER            │
+                    │      192.168.1.1                │
+                    │  (Your gym's WiFi/Internet)     │
+                    └──────────┬──────────────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+                │                             │
+    ┌───────────▼──────────┐      ┌──────────▼───────────┐
+    │  TURNSTILE GATE      │      │   FRONT DESK PC      │
+    │  MC-5924T Controller │      │   Windows Computer   │
+    │                      │      │                      │
+    │  IP: 192.168.1.150   │      │  IP: 192.168.1.20    │
+    │  Port: 8000          │      │  (or auto-assigned)  │
+    │                      │      │                      │
+    │  [RFID Reader]       │      │  [Bridge Service]    │
+    └──────────────────────┘      └──────────────────────┘
+            ↑                              ↑
+            │                              │
+         Member                      Reads logs &
+       scans card                    uploads to cloud
+
+
+DATA FLOW
+---------
+
+Step 1: Member Scans Card
+    Member → [RFID Card] → Turnstile Controller
+    Controller logs: Card ID + Timestamp
+
+Step 2: Bridge Reads Logs (Every 30 seconds)
+    Front Desk PC → Polls Controller → Gets new logs
+
+Step 3: Bridge Uploads to Cloud
+    Front Desk PC → Internet → PythonAnywhere Backend
+
+Step 4: Shows in Dashboard
+    Admin Dashboard → Shows attendance record
+
+
+NETWORK CONFIGURATION
+---------------------
+
+┌─────────────────────────────────────────────────────────────┐
+│ DEVICE            │ IP ADDRESS      │ SUBNET MASK         │
+├─────────────────────────────────────────────────────────────┤
+│ Router            │ 192.168.1.1     │ 255.255.255.0       │
+│ Turnstile         │ 192.168.1.150   │ 255.255.255.0       │
+│ Front Desk PC     │ 192.168.1.20    │ 255.255.255.0       │
+│                   │ (or DHCP auto)  │                     │
+└─────────────────────────────────────────────────────────────┘
+
+PORTS USED
+----------
+┌─────────────────────────────────────────────────────────────┐
+│ CONNECTION        │ PROTOCOL │ PORT  │ DIRECTION          │
+├─────────────────────────────────────────────────────────────┤
+│ PC → Controller   │ UDP      │ 8000  │ Local Network      │
+│ PC → Backend      │ HTTPS    │ 443   │ Internet (Outbound)│
+└─────────────────────────────────────────────────────────────┘
+
+
+CABLE CONNECTIONS
+-----------------
+
+Router
+  │
+  ├─── [Ethernet Cable] ──→ Turnstile Controller (RJ45 port)
+  │
+  └─── [Ethernet Cable] ──→ Front Desk PC (Network port)
+       (or WiFi connection)
+
+
+TESTING CONNECTIVITY
+--------------------
+
+Test 1: PC can reach Controller
+    Command: ping 192.168.1.150
+    Expected: Reply from 192.168.1.150: bytes=32 time<1ms TTL=64
+    
+    ✓ Success = Network cable connected, controller powered on
+    ✗ Timeout = Check cables, check controller power
+
+Test 2: PC has Internet
+    Command: ping google.com
+    Expected: Reply from 142.250.x.x: bytes=32 time=20ms TTL=117
+    
+    ✓ Success = Internet working
+    ✗ Timeout = Check router, check internet connection
+
+Test 3: PC can reach Backend
+    Command: curl https://yourusername.pythonanywhere.com
+    Expected: HTML response (website content)
+    
+    ✓ Success = Backend reachable
+    ✗ Error = Check URL, check internet
+
+
+FIREWALL REQUIREMENTS
+---------------------
+
+Windows Firewall on Front Desk PC must allow:
+  ✓ Outbound HTTPS (port 443) - for backend communication
+  ✓ Outbound UDP (port 8000) - for controller communication
+  ✓ Python.exe - allow through firewall
+
+Usually these are allowed by default. If blocked:
+  1. Open Windows Firewall
+  2. Click "Allow an app through firewall"
+  3. Find Python.exe
+  4. Check both Private and Public
+  5. Click OK
+
+
+TROUBLESHOOTING NETWORK ISSUES
+-------------------------------
+
+Problem: Can't ping controller (192.168.1.150)
+Solutions:
+  □ Check network cable is plugged into PC
+  □ Check network cable is plugged into controller
+  □ Check controller is powered on (LED should be lit)
+  □ Try different network cable
+  □ Check PC network adapter is enabled
+  □ Verify controller IP hasn't changed
+
+Problem: Can't ping internet (google.com)
+Solutions:
+  □ Check router is powered on
+  □ Check internet service is active
+  □ Try accessing a website in browser
+  □ Restart router (unplug 30 seconds, plug back in)
+  □ Check PC WiFi/Ethernet is connected
+
+Problem: Bridge can't connect to backend
+Solutions:
+  □ Verify APP_URL in config.txt is correct
+  □ Check SECRET_KEY matches backend .env
+  □ Test: Open APP_URL in browser (should load website)
+  □ Check Windows Firewall isn't blocking Python
+  □ Verify PythonAnywhere web app is running
+
+
+NETWORK SECURITY
+----------------
+
+✓ Controller is on local network only (not exposed to internet)
+✓ Bridge uses HTTPS for backend communication (encrypted)
+✓ Secret key authentication prevents unauthorized access
+✓ No incoming connections required (firewall-friendly)
+
+
+ALTERNATIVE SETUPS
+------------------
+
+Setup 1: PC on WiFi, Controller on Ethernet
+    Router ─┬─ [WiFi] ──→ Front Desk PC
+            └─ [Cable] ──→ Turnstile Controller
+    
+    ✓ Works fine
+    ✓ PC must be on same network (192.168.1.x)
+
+Setup 2: Both on Ethernet
+    Router ─┬─ [Cable] ──→ Front Desk PC
+            └─ [Cable] ──→ Turnstile Controller
+    
+    ✓ Most reliable (recommended)
+    ✓ Faster, no WiFi interference
+
+Setup 3: Separate Switch
+    Router ──→ Switch ─┬─ [Cable] ──→ Front Desk PC
+                       └─ [Cable] ──→ Turnstile Controller
+    
+    ✓ Works fine
+    ✓ Useful if router is far away
+
+
+BANDWIDTH REQUIREMENTS
+----------------------
+
+Very minimal:
+  • Controller → PC: ~1 KB per scan
+  • PC → Backend: ~2 KB per scan
+  • Heartbeat: ~500 bytes every 5 minutes
+
+Total: Less than 1 MB per day for typical gym
+Works fine on slow internet connections
+
+
+IP ADDRESS ASSIGNMENT
+---------------------
+
+Option A: Static IP (Recommended for PC)
+  Pros: Always same IP, more reliable
+  Cons: Requires manual configuration
+  Best for: Production deployment
+
+Option B: DHCP (Automatic)
+  Pros: No configuration needed
+  Cons: IP might change after restart
+  Best for: Testing, temporary setup
+
+Controller should always use static IP (192.168.1.150)
+
+
+NETWORK CHECKLIST
+-----------------
+
+Before installation:
+  □ Router is working
+  □ Internet connection is active
+  □ Network cables are connected
+  □ Controller is powered on
+  □ PC can ping 192.168.1.150
+  □ PC can ping google.com
+  □ PC can access backend URL in browser
+
+After installation:
+  □ Bridge service is running
+  □ bridge.log shows "Heartbeat sent successfully"
+  □ Dashboard shows bridge 🟢 Online
+  □ Test card scan appears in dashboard
+
+
+CONTACT INFORMATION
+-------------------
+
+Controller IP:     192.168.1.150
+PC IP:             192.168.1.20 (or check with: ipconfig)
+Backend URL:       https://yourusername.pythonanywhere.com
+Service Name:      GymBridge
+
+To find PC IP address:
+  Command: ipconfig
+  Look for: IPv4 Address under your network adapter
+
+
+================================================================================
+REMEMBER: Both PC and Controller must be on same network (192.168.1.x)
+and PC must have internet access to upload attendance to cloud.
+================================================================================
+
+Version: 1.0
+Last Updated: April 2026

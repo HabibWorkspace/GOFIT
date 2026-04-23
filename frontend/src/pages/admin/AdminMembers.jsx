@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
-import logo from '/fitcore-logo.png'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 
 export default function AdminMembers() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [members, setMembers] = useState([])
   const [filteredMembers, setFilteredMembers] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -23,11 +26,18 @@ export default function AdminMembers() {
   const [confirmFreeze, setConfirmFreeze] = useState(null)
   const [profileImage, setProfileImage] = useState(null)
   const [profileImagePreview, setProfileImagePreview] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalMembers, setTotalMembers] = useState(0)
+  const [perPage] = useState(50)
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
     cnic: '',
     email: '',
+    father_name: '',
+    weight_kg: '',
+    blood_group: '',
+    address: '',
     gender: '',
     date_of_birth: '',
     admission_date: new Date().toISOString().split('T')[0],
@@ -38,9 +48,11 @@ export default function AdminMembers() {
     final_payable: 0,
     package_id: '',
     trainer_id: '',
+    package_start_date: '',
+    package_expiry_date: '',
     profile_picture: '',
+    card_id: '',
   })
-  const navigate = useNavigate()
 
   useEffect(() => {
     fetchMembers()
@@ -48,6 +60,32 @@ export default function AdminMembers() {
     fetchTrainers()
     fetchSettings()
   }, [])
+
+  // Handle edit member from navigation state (from Member Details page)
+  useEffect(() => {
+    const editMemberId = location.state?.editMemberId
+    if (editMemberId) {
+      // Fetch the specific member and open edit form
+      const fetchAndEditMember = async () => {
+        try {
+          const response = await apiClient.get(`/admin/members?per_page=1000&_t=${Date.now()}`)
+          const allMembers = response.data.members || []
+          const memberToEdit = allMembers.find(m => m.id === editMemberId)
+          
+          if (memberToEdit) {
+            handleEdit(memberToEdit)
+          }
+        } catch (err) {
+          console.error('Failed to fetch member for editing:', err)
+        }
+      }
+      
+      fetchAndEditMember()
+      
+      // Clear the navigation state
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.state])
 
   useEffect(() => {
     if (error || success) {
@@ -59,20 +97,19 @@ export default function AdminMembers() {
     }
   }, [error, success])
 
-  // Auto-apply search filter whenever members or search query changes
-  useEffect(() => {
-    handleSearch()
-  }, [members, searchQuery])
+  // Remove the auto-search effect that was causing infinite loop
+  // Search will only happen when user clicks search button or presses Enter
 
   // Calculate final payable whenever relevant fields change
   useEffect(() => {
     calculateFinalPayable()
   }, [formData.admission_fee, formData.waive_admission_fee, formData.discount, formData.discount_type, formData.package_id, formData.trainer_id])
 
-  const fetchMembers = async () => {
+  const fetchMembers = async (page = 1) => {
     try {
-      // Add cache buster to force fresh data and request all members
-      const response = await apiClient.get(`/admin/members?per_page=1000&_t=${Date.now()}`, {
+      setLoading(true)
+      // Fetch with pagination - 50 members per page
+      const response = await apiClient.get(`/admin/members?page=${page}&per_page=${perPage}&_t=${Date.now()}`, {
         headers: { 
           'Cache-Control': 'no-cache', 
           'Pragma': 'no-cache',
@@ -81,6 +118,8 @@ export default function AdminMembers() {
       })
       setMembers(response.data.members || [])
       setFilteredMembers(response.data.members || [])
+      setTotalMembers(response.data.total || 0)
+      setCurrentPage(page)
     } catch (err) {
       setError('Failed to load members')
       console.error(err)
@@ -176,15 +215,6 @@ export default function AdminMembers() {
       return
     }
     
-    // Validate email format only if provided
-    if (formData.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address')
-        return
-      }
-    }
-    
     if (!editingMember && !formData.waive_admission_fee) {
       const discount = parseFloat(formData.discount) || 0
       const admissionFee = parseFloat(formData.admission_fee) || 0
@@ -217,6 +247,10 @@ export default function AdminMembers() {
           phone: formData.phone,
           cnic: formData.cnic,
           email: formData.email,
+          father_name: formData.father_name,
+          weight_kg: formData.weight_kg,
+          blood_group: formData.blood_group,
+          address: formData.address,
           gender: formData.gender,
           date_of_birth: formData.date_of_birth,
           admission_date: formData.admission_date,
@@ -224,6 +258,7 @@ export default function AdminMembers() {
           trainer_id: formData.trainer_id,
           package_start_date: formData.package_start_date,
           package_expiry_date: formData.package_expiry_date,
+          card_id: formData.card_id,
         }
         
         // Add profile picture if changed
@@ -260,6 +295,10 @@ export default function AdminMembers() {
           phone: formData.phone,
           cnic: formData.cnic,
           email: formData.email,
+          father_name: formData.father_name,
+          weight_kg: formData.weight_kg,
+          blood_group: formData.blood_group,
+          address: formData.address,
           gender: formData.gender,
           date_of_birth: formData.date_of_birth,
           admission_date: formData.admission_date,
@@ -293,6 +332,10 @@ export default function AdminMembers() {
       phone: '',
       cnic: '',
       email: '',
+      father_name: '',
+      weight_kg: '',
+      blood_group: '',
+      address: '',
       gender: '',
       date_of_birth: '',
       admission_date: new Date().toISOString().split('T')[0],
@@ -305,6 +348,7 @@ export default function AdminMembers() {
       trainer_id: '',
       package_start_date: '',
       package_expiry_date: '',
+      card_id: '',
     })
     setShowPassword(false)
   }
@@ -318,7 +362,11 @@ export default function AdminMembers() {
         full_name: member.full_name || '',
         phone: member.phone,
         cnic: member.cnic,
-        email: member.email,
+        email: member.email || '',
+        father_name: member.father_name || '',
+        weight_kg: member.weight_kg || '',
+        blood_group: member.blood_group || '',
+        address: member.address || '',
         gender: member.gender || '',
         date_of_birth: member.date_of_birth || '',
         admission_date: member.admission_date || new Date().toISOString().split('T')[0],
@@ -332,6 +380,7 @@ export default function AdminMembers() {
         package_start_date: member.package_start_date || '',
         package_expiry_date: member.package_expiry_date || '',
         profile_picture: member.profile_picture || '',
+        card_id: member.card_id || '',
       })
       setProfileImagePreview(member.profile_picture || null)
       setProfileImage(null)
@@ -434,33 +483,54 @@ export default function AdminMembers() {
     setConfirmFreeze(null)
   }
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setFilteredMembers(members)
+      // If search is cleared, fetch first page
+      fetchMembers(1)
       return
     }
 
-    const query = searchQuery.toLowerCase().trim()
-    const filtered = members.filter(member => {
-      // Search by member_number (ID)
-      if (member.member_number && member.member_number.toString().includes(query)) {
-        return true
-      }
-      // Search by full name
-      if (member.full_name && member.full_name.toLowerCase().includes(query)) {
-        return true
-      }
-      // Search by phone
-      if (member.phone && member.phone.toLowerCase().includes(query)) {
-        return true
-      }
-      // Search by email
-      if (member.email && member.email.toLowerCase().includes(query)) {
-        return true
-      }
-      return false
-    })
-    setFilteredMembers(filtered)
+    try {
+      setLoading(true)
+      const query = searchQuery.toLowerCase().trim()
+      
+      // Fetch all members for search (backend will handle this)
+      const response = await apiClient.get(`/admin/members?per_page=1000&_t=${Date.now()}`, {
+        headers: { 
+          'Cache-Control': 'no-cache', 
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+      
+      const allMembers = response.data.members || []
+      
+      // Filter on frontend
+      const filtered = allMembers.filter(member => {
+        // Search by member_number (ID)
+        if (member.member_number && member.member_number.toString().includes(query)) {
+          return true
+        }
+        // Search by full name
+        if (member.full_name && member.full_name.toLowerCase().includes(query)) {
+          return true
+        }
+        // Search by phone
+        if (member.phone && member.phone.toLowerCase().includes(query)) {
+          return true
+        }
+        return false
+      })
+      
+      setMembers(filtered)
+      setFilteredMembers(filtered)
+      setTotalMembers(filtered.length)
+    } catch (err) {
+      setError('Search failed')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSort = (field) => {
@@ -505,7 +575,7 @@ export default function AdminMembers() {
 
   const handleClearSearch = () => {
     setSearchQuery('')
-    setFilteredMembers(members)
+    fetchMembers(1) // Reset to first page
   }
 
   const handleSearchKeyPress = (e) => {
@@ -522,6 +592,22 @@ export default function AdminMembers() {
     }
 
     const pkg = packages.find(p => p.id === member.current_package_id)
+    
+    // Calculate package dates if not set
+    let packageStartDate = member.package_start_date
+    let packageExpiryDate = member.package_expiry_date
+    
+    // If dates are not set but package exists, calculate them
+    if (pkg && (!packageStartDate || !packageExpiryDate)) {
+      // Use admission date or today as start date
+      const startDate = member.admission_date ? new Date(member.admission_date) : new Date()
+      packageStartDate = startDate.toISOString()
+      
+      // Calculate expiry date based on package duration
+      const expiryDate = new Date(startDate)
+      expiryDate.setDate(expiryDate.getDate() + pkg.duration_days)
+      packageExpiryDate = expiryDate.toISOString()
+    }
     
     // Generate short transaction ID (last 8 characters)
     const shortTxnId = payment.id.slice(-8).toUpperCase()
@@ -558,7 +644,7 @@ export default function AdminMembers() {
           }
           .header {
             text-align: center;
-            border-bottom: 6px solid #B6FF00;
+            border-bottom: 6px solid #F2C228;
             padding-bottom: 40px;
             margin-bottom: 50px;
             page-break-after: avoid;
@@ -571,7 +657,7 @@ export default function AdminMembers() {
             object-fit: contain;
           }
           .gym-name {
-            color: #B6FF00;
+            color: #F2C228;
             margin: 25px 0;
             font-size: 68px;
             font-weight: bold;
@@ -611,7 +697,7 @@ export default function AdminMembers() {
             color: #0B0B0B;
             font-size: 36px;
             font-weight: 800;
-            border-bottom: 5px solid #B6FF00;
+            border-bottom: 5px solid #F2C228;
             padding-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -640,11 +726,11 @@ export default function AdminMembers() {
             word-wrap: break-word;
           }
           .payment-details {
-            background: linear-gradient(135deg, #B6FF00 0%, #9FE600 100%);
+            background: linear-gradient(135deg, #F2C228 0%, #9FE600 100%);
             padding: 50px;
             border-radius: 24px;
             margin: 50px 0;
-            box-shadow: 0 10px 25px rgba(182, 255, 0, 0.5);
+            box-shadow: 0 10px 25px rgba(242, 194, 40, 0.5);
             page-break-inside: avoid;
           }
           .payment-details h2 {
@@ -734,7 +820,7 @@ export default function AdminMembers() {
       </head>
       <body>
         <div class="header">
-          <img src="https://raw.githubusercontent.com/HabibWorkspace/MODERN-FITNESS-GYM/main/frontend/public/modern-fitness-logo.png" alt="Modern Fitness Gym Logo" class="logo" />
+          <img src="${window.location.origin}/reciept.png" alt="GOFIT Receipt Logo" class="logo" />
           <p class="receipt-date">Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
 
@@ -767,11 +853,11 @@ export default function AdminMembers() {
             </div>
             <div class="info-row">
               <span class="info-label">Start Date:</span>
-              <span class="info-value">${member.package_start_date ? new Date(member.package_start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not Set'}</span>
+              <span class="info-value">${packageStartDate ? new Date(packageStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not Set'}</span>
             </div>
             <div class="info-row">
               <span class="info-label">Expiry Date:</span>
-              <span class="info-value">${member.package_expiry_date ? new Date(member.package_expiry_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not Set'}</span>
+              <span class="info-value">${packageExpiryDate ? new Date(packageExpiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not Set'}</span>
             </div>
           </div>
         </div>
@@ -855,28 +941,28 @@ export default function AdminMembers() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-fitnix-black flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-fitnix-dark flex items-center justify-center z-50">
         <div className="relative flex flex-col items-center">
           {/* Outer rotating ring */}
           <div className="relative w-24 h-24">
-            <div className="absolute inset-0 rounded-full border-4 border-fitnix-charcoal/30"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-lime border-r-fitnix-lime animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-dark-lime border-l-fitnix-dark-lime animate-spin-reverse"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-fitnix-dark-light/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-fitnix-gold border-r-fitnix-gold animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-b-fitnix-gold-dark border-l-fitnix-gold-dark animate-spin-reverse"></div>
             {/* Logo in center */}
             <div className="absolute inset-0 flex items-center justify-center">
               <img 
-                src={logo} 
+                src="/logo.PNG" 
                 alt="FitNix Logo" 
                 className="w-14 h-14 object-contain animate-pulse" 
                 style={{ 
-                  filter: 'drop-shadow(0 0 8px rgba(182, 255, 0, 0.3))',
+                  filter: 'drop-shadow(0 0 8px rgba(242, 194, 40, 0.3))',
                   mixBlendMode: 'screen'
                 }} 
               />
             </div>
           </div>
           {/* Loading text */}
-          <p className="mt-4 text-fitnix-lime font-semibold animate-pulse">Loading...</p>
+          <p className="mt-4 text-fitnix-gold font-semibold animate-pulse">Loading...</p>
         </div>
       </div>
     )
@@ -951,9 +1037,9 @@ export default function AdminMembers() {
         )}
 
         {success && (
-          <div className="bg-fitnix-charcoal border border-fitnix-lime text-fitnix-off-white px-4 py-3 rounded-xl">
+          <div className="bg-fitnix-dark-light border border-fitnix-gold text-fitnix-off-white px-4 py-3 rounded-xl">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-fitnix-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {success}
@@ -969,7 +1055,7 @@ export default function AdminMembers() {
             
             {/* Basic Information */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-fitnix-lime mb-3">Personal Information</h3>
+              <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Personal Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
@@ -994,11 +1080,11 @@ export default function AdminMembers() {
                       <img 
                         src={profileImagePreview} 
                         alt="Profile preview" 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-lime"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-gold"
                       />
                     )}
                     <label className="flex-1 cursor-pointer">
-                      <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-lime/50 transition-colors">
+                      <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-gold/50 transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
@@ -1013,19 +1099,6 @@ export default function AdminMembers() {
                     </label>
                   </div>
                   <p className="text-xs text-fitnix-off-white/50 mt-1">Max 5MB, JPG/PNG</p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Enter email address (optional)"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="fitnix-input"
-                  />
                 </div>
                 
                 <div>
@@ -1060,6 +1133,19 @@ export default function AdminMembers() {
                 
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Father Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter father's name"
+                    value={formData.father_name}
+                    onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                    className="fitnix-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     CNIC
                   </label>
                   <input
@@ -1070,98 +1156,137 @@ export default function AdminMembers() {
                     className="fitnix-input"
                   />
                 </div>
-                
+
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="member@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="fitnix-input"
+                  />
+                  <p className="text-xs text-fitnix-off-white/50 mt-1">
+                    Optional - Used for password reset and notifications
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     Date of Birth
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <select
-                      value={formData.date_of_birth ? new Date(formData.date_of_birth).getDate() : ''}
-                      onChange={(e) => {
-                        const day = e.target.value
-                        if (day && formData.date_of_birth) {
-                          const date = new Date(formData.date_of_birth)
-                          date.setDate(parseInt(day))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        } else if (day) {
-                          const date = new Date()
-                          date.setDate(parseInt(day))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        }
-                      }}
-                      className="fitnix-input"
-                    >
-                      <option value="">Day</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                        <option key={day} value={day}>{day}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={formData.date_of_birth ? new Date(formData.date_of_birth).getMonth() + 1 : ''}
-                      onChange={(e) => {
-                        const month = e.target.value
-                        if (month && formData.date_of_birth) {
-                          const date = new Date(formData.date_of_birth)
-                          date.setMonth(parseInt(month) - 1)
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        } else if (month) {
-                          const date = new Date()
-                          date.setMonth(parseInt(month) - 1)
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        }
-                      }}
-                      className="fitnix-input"
-                    >
-                      <option value="">Month</option>
-                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, i) => (
-                        <option key={i + 1} value={i + 1}>{month}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={formData.date_of_birth ? new Date(formData.date_of_birth).getFullYear() : ''}
-                      onChange={(e) => {
-                        const year = e.target.value
-                        if (year && formData.date_of_birth) {
-                          const date = new Date(formData.date_of_birth)
-                          date.setFullYear(parseInt(year))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        } else if (year) {
-                          const date = new Date()
-                          date.setFullYear(parseInt(year))
-                          setFormData({ ...formData, date_of_birth: date.toISOString().split('T')[0] })
-                        }
-                      }}
-                      className="fitnix-input"
-                    >
-                      <option value="">Year</option>
-                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <DatePicker
+                    selected={formData.date_of_birth ? new Date(formData.date_of_birth) : null}
+                    onChange={(date) => setFormData({ ...formData, date_of_birth: date ? date.toISOString().split('T')[0] : '' })}
+                    dateFormat="MMM dd, yyyy"
+                    className="fitnix-input w-full"
+                    placeholderText="Select date of birth"
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
+                    maxDate={new Date()}
+                    yearDropdownItemNumber={100}
+                    scrollableYearDropdown
+                    isClearable
+                  />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     Admission Date
                   </label>
-                  <input
-                    type="date"
-                    value={formData.admission_date}
-                    onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
-                    className="fitnix-input"
+                  <DatePicker
+                    selected={formData.admission_date ? new Date(formData.admission_date) : new Date()}
+                    onChange={(date) => setFormData({ ...formData, admission_date: date ? date.toISOString().split('T')[0] : '' })}
+                    dateFormat="MMM dd, yyyy"
+                    className="fitnix-input w-full"
+                    placeholderText="Select admission date"
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
                   />
                   <p className="text-xs text-fitnix-off-white/50 mt-1">
                     Date when member joined the gym
                   </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    RFID Card ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter RFID card number"
+                    value={formData.card_id}
+                    onChange={(e) => setFormData({ ...formData, card_id: e.target.value })}
+                    className="fitnix-input"
+                    maxLength="20"
+                  />
+                  <p className="text-xs text-fitnix-off-white/50 mt-1">
+                    Physical RFID card number for turnstile access
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="500"
+                    placeholder="75.50"
+                    value={formData.weight_kg}
+                    onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
+                    className="fitnix-input"
+                  />
+                  <p className="text-xs text-fitnix-off-white/50 mt-1">
+                    Weight in kilograms
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Blood Group
+                  </label>
+                  <select
+                    value={formData.blood_group}
+                    onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
+                    className="fitnix-input"
+                  >
+                    <option value="">Select Blood Group</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Address
+                  </label>
+                  <textarea
+                    placeholder="Enter complete address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="fitnix-input"
+                    rows="3"
+                  />
                 </div>
               </div>
             </div>
 
             {/* Package Selection - Show for both new and edit */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-fitnix-lime mb-3">Package & Trainer Assignment</h3>
+              <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Package & Trainer Assignment</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
@@ -1210,8 +1335,8 @@ export default function AdminMembers() {
                     <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                       Trainer Charge (Rs.)
                     </label>
-                    <div className="fitnix-card p-4 bg-fitnix-charcoal/50 border border-fitnix-lime/30">
-                      <p className="text-lg font-bold text-fitnix-lime">
+                    <div className="fitnix-card p-4 bg-fitnix-dark-light/50 border border-fitnix-gold/30">
+                      <p className="text-lg font-bold text-fitnix-gold">
                         Rs. {(() => {
                           const trainer = trainers.find(t => t.id === formData.trainer_id)
                           return trainer ? parseFloat(trainer.salary_rate).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0'
@@ -1223,20 +1348,38 @@ export default function AdminMembers() {
               </div>
             </div>
 
-            {/* Package Dates - Only for editing */}
-            {editingMember && (
+            {/* Package Dates - Only for editing (Auto-calculate expiry) */}
+            {editingMember && formData.package_id && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-fitnix-lime mb-3">Package Dates</h3>
+                <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Package Duration</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                       Package Start Date
                     </label>
-                    <input
-                      type="date"
-                      value={formData.package_start_date ? formData.package_start_date.split('T')[0] : ''}
-                      onChange={(e) => setFormData({ ...formData, package_start_date: e.target.value })}
-                      className="fitnix-input"
+                    <DatePicker
+                      selected={formData.package_start_date ? new Date(formData.package_start_date) : null}
+                      onChange={(date) => {
+                        const startDate = date ? date.toISOString().split('T')[0] : ''
+                        // Auto-calculate expiry date based on package duration
+                        let expiryDate = ''
+                        if (date && formData.package_id) {
+                          const selectedPackage = packages.find(pkg => pkg.id === formData.package_id)
+                          if (selectedPackage) {
+                            const expiry = new Date(date)
+                            expiry.setDate(expiry.getDate() + selectedPackage.duration_days)
+                            expiryDate = expiry.toISOString().split('T')[0]
+                          }
+                        }
+                        setFormData({ ...formData, package_start_date: startDate, package_expiry_date: expiryDate })
+                      }}
+                      dateFormat="MMM dd, yyyy"
+                      className="fitnix-input w-full"
+                      placeholderText="Select start date"
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
+                      isClearable
                     />
                   </div>
                   
@@ -1244,12 +1387,19 @@ export default function AdminMembers() {
                     <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                       Package Expiry Date
                     </label>
-                    <input
-                      type="date"
-                      value={formData.package_expiry_date ? formData.package_expiry_date.split('T')[0] : ''}
-                      onChange={(e) => setFormData({ ...formData, package_expiry_date: e.target.value })}
-                      className="fitnix-input"
-                    />
+                    <div className="fitnix-input bg-fitnix-dark-light/20 border-fitnix-gold/10 cursor-not-allowed flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-fitnix-gold/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span className="text-fitnix-off-white/60">
+                        {formData.package_expiry_date 
+                          ? new Date(formData.package_expiry_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                          : 'Auto-calculated'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-fitnix-off-white/50 mt-1">
+                      Automatically calculated from package duration
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1258,11 +1408,11 @@ export default function AdminMembers() {
             {/* Payment Information - Only for new members */}
             {!editingMember && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-fitnix-lime mb-3">Admission Fee</h3>
+                <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Admission Fee</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-fitnix-charcoal/50 border border-fitnix-lime/30 rounded-lg p-4">
+                  <div className="bg-fitnix-dark-light/50 border border-fitnix-gold/30 rounded-lg p-4">
                     <p className="text-sm text-fitnix-off-white/60 mb-1">Standard Admission Fee</p>
-                    <p className="text-2xl font-bold text-fitnix-lime">Rs. {defaultAdmissionFee.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                    <p className="text-2xl font-bold text-fitnix-gold">Rs. {defaultAdmissionFee.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                   </div>
                   
                   <div className="flex items-center">
@@ -1275,7 +1425,7 @@ export default function AdminMembers() {
                           waive_admission_fee: e.target.checked,
                           discount: e.target.checked ? 0 : formData.discount
                         })}
-                        className="w-5 h-5 text-fitnix-lime bg-fitnix-charcoal border-fitnix-off-white/20 rounded focus:ring-fitnix-lime focus:ring-2"
+                        className="w-5 h-5 text-fitnix-gold bg-fitnix-dark-light border-fitnix-off-white/20 rounded focus:ring-fitnix-gold focus:ring-2"
                       />
                       <span className="text-sm font-medium text-fitnix-off-white/80">
                         Waive Admission Fee
@@ -1328,10 +1478,10 @@ export default function AdminMembers() {
                     <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                       Final Payable Amount
                     </label>
-                    <div className="bg-fitnix-black border-2 border-fitnix-lime rounded-lg px-4 py-3">
+                    <div className="bg-fitnix-dark border-2 border-fitnix-gold rounded-lg px-4 py-3">
                       {/* Breakdown */}
                       {!formData.waive_admission_fee && (
-                        <div className="space-y-1 mb-3 pb-3 border-b border-fitnix-lime/20">
+                        <div className="space-y-1 mb-3 pb-3 border-b border-fitnix-gold/20">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-fitnix-off-white/60">Admission Fee:</span>
                             <span className="text-fitnix-off-white">Rs. {parseFloat(formData.admission_fee || 0).toFixed(2)}</span>
@@ -1382,7 +1532,7 @@ export default function AdminMembers() {
                       {/* Total */}
                       <div className="flex items-center justify-between">
                         <span className="text-fitnix-off-white/60">Total Amount:</span>
-                        <span className="text-2xl font-bold text-fitnix-lime">
+                        <span className="text-2xl font-bold text-fitnix-gold">
                           Rs. {formData.final_payable.toFixed(2)}
                         </span>
                       </div>
@@ -1433,22 +1583,22 @@ export default function AdminMembers() {
               </div>
               <input
                 type="text"
-                placeholder="Search by member ID, name, phone, or email..."
+                placeholder="Search by member ID, name, or phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleSearchKeyPress}
-                className="w-full pl-12 pr-4 py-3 bg-fitnix-charcoal border border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-lime focus:ring-1 focus:ring-fitnix-lime transition-colors"
+                className="w-full pl-12 pr-4 py-3 bg-fitnix-dark-light border border-fitnix-off-white/20 rounded-lg text-fitnix-off-white placeholder-fitnix-off-white/40 focus:outline-none focus:border-fitnix-gold focus:ring-1 focus:ring-fitnix-gold transition-colors"
               />
             </div>
             <button
               onClick={handleSearch}
-              className="px-6 py-3 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black font-semibold rounded-lg transition-colors"
+              className="px-6 py-3 bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark font-semibold rounded-lg transition-colors"
             >
               Go
             </button>
             <button
               onClick={handleClearSearch}
-              className="px-6 py-3 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold rounded-lg border border-fitnix-off-white/20 transition-colors"
+              className="px-6 py-3 bg-fitnix-dark-light hover:bg-fitnix-dark-light/80 text-fitnix-off-white font-semibold rounded-lg border border-fitnix-off-white/20 transition-colors"
             >
               Clear
             </button>
@@ -1464,23 +1614,23 @@ export default function AdminMembers() {
           <div className="overflow-x-auto">
             <table className="w-full table-auto">
               <thead>
-                <tr className="bg-fitnix-black border-b-2 border-fitnix-lime/30">
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">
+                <tr className="bg-fitnix-dark border-b-2 border-fitnix-gold/30">
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">
                     <button 
                       onClick={() => handleSort('member_number')}
-                      className="flex items-center gap-2 hover:text-fitnix-dark-lime transition-colors"
+                      className="flex items-center gap-2 hover:text-fitnix-gold-dark transition-colors"
                     >
-                      ID
+                      Card ID
                       {sortField === 'member_number' && (
                         <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </button>
                   </th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Photo</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Photo</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">
                     <button 
                       onClick={() => handleSort('full_name')}
-                      className="flex items-center gap-2 hover:text-fitnix-dark-lime transition-colors"
+                      className="flex items-center gap-2 hover:text-fitnix-gold-dark transition-colors"
                     >
                       Full Name
                       {sortField === 'full_name' && (
@@ -1488,15 +1638,15 @@ export default function AdminMembers() {
                       )}
                     </button>
                   </th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Phone</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Admission</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Package</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Trainer</th>
-                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Status</th>
-                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-lime uppercase tracking-wider whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Phone</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Admission</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Package</th>
+                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Trainer</th>
+                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-6 py-5 text-center text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-fitnix-charcoal/30">
+              <tbody className="bg-fitnix-dark-light/30">
                 {filteredMembers.length === 0 ? (
                   <tr>
                     <td colSpan="9" className="px-6 py-12 text-center">
@@ -1512,19 +1662,19 @@ export default function AdminMembers() {
                 ) : (
                   filteredMembers.map((member, index) => {
                     return (
-                      <tr key={member.id} className={`hover:bg-fitnix-black/50 transition-colors border-b border-fitnix-lime/10 ${index % 2 === 0 ? 'bg-fitnix-charcoal/20' : 'bg-fitnix-charcoal/40'}`}>
-                        <td className="px-6 py-6 text-base text-fitnix-lime font-semibold whitespace-nowrap">
-                          #{member.member_number || 'N/A'}
+                      <tr key={member.id} className={`hover:bg-fitnix-dark/50 transition-colors border-b border-fitnix-gold/10 ${index % 2 === 0 ? 'bg-fitnix-dark-light/20' : 'bg-fitnix-dark-light/40'}`}>
+                        <td className="px-6 py-6 text-base text-fitnix-gold font-semibold whitespace-nowrap">
+                          {member.card_id || 'Not Assigned'}
                         </td>
                         <td className="px-6 py-6">
                           {member.profile_picture ? (
                             <img 
                               src={member.profile_picture} 
                               alt={member.full_name} 
-                              className="w-12 h-12 rounded-full object-cover border-2 border-fitnix-lime"
+                              className="w-12 h-12 rounded-full object-cover border-2 border-fitnix-gold"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-fitnix-charcoal border-2 border-fitnix-off-white/20 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-fitnix-dark-light border-2 border-fitnix-off-white/20 flex items-center justify-center">
                               <svg className="w-6 h-6 text-fitnix-off-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
@@ -1532,11 +1682,11 @@ export default function AdminMembers() {
                           )}
                         </td>
                         <td className="px-6 py-6 text-base text-fitnix-off-white">
-                          <div className="flex flex-col gap-1">
-                            <span>{member.full_name || 'N/A'}</span>
+                          <div className="flex flex-col gap-2">
+                            <span className="whitespace-normal break-words">{member.full_name || 'N/A'}</span>
                             {isNewMember(member.admission_date) && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 animate-pulse w-fit">
-                                <span className="w-2 h-2 bg-fitnix-lime rounded-full animate-ping"></span>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-fitnix-gold/20 text-fitnix-gold border border-fitnix-gold/50 animate-pulse w-fit whitespace-nowrap">
+                                <span className="w-2 h-2 bg-fitnix-gold rounded-full animate-ping"></span>
                                 New Member
                               </span>
                             )}
@@ -1563,30 +1713,45 @@ export default function AdminMembers() {
                           </div>
                         </td>
                         <td className="px-6 py-6 text-center">
-                          <button
-                            onClick={() => handleToggleFreeze(member)}
-                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                              member.is_frozen
-                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30'
-                                : 'bg-fitnix-lime/20 text-fitnix-lime border border-fitnix-lime/50 hover:bg-fitnix-lime/30'
-                            }`}
-                            title={member.is_frozen ? 'Click to activate' : 'Click to freeze'}
-                          >
-                            {member.is_frozen ? 'Frozen' : 'Active'}
-                          </button>
+                          <div className="flex flex-col gap-1.5 items-center">
+                            {member.is_frozen ? (
+                              // Frozen member - clickable to unfreeze
+                              <button
+                                onClick={() => handleToggleFreeze(member)}
+                                className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30"
+                                title="Click to activate"
+                              >
+                                Frozen
+                              </button>
+                            ) : member.is_inactive ? (
+                              // Inactive member - clickable to freeze
+                              <button
+                                onClick={() => handleToggleFreeze(member)}
+                                className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-orange-500/20 text-orange-400 border border-orange-500/50 hover:bg-orange-500/30"
+                                title="Click to freeze"
+                              >
+                                Inactive
+                              </button>
+                            ) : (
+                              // Active member - NOT clickable
+                              <span className="px-4 py-1.5 rounded-full text-xs font-semibold bg-fitnix-gold/20 text-fitnix-gold border border-fitnix-gold/50">
+                                Active
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-6">
                           <div className="flex flex-col gap-1.5 items-center">
                             <button
-                              onClick={() => handleEdit(member)}
-                              className="w-24 bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
-                              title="Edit member"
+                              onClick={() => navigate(`/admin/members/${member.id}`)}
+                              className="w-32 bg-gradient-to-r from-fitnix-gold to-fitnix-gold-dark hover:from-fitnix-gold-dark hover:to-fitnix-gold text-fitnix-dark px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
+                              title="View member details"
                             >
-                              Edit
+                              View Details
                             </button>
                             <button
                               onClick={() => handleDelete(member)}
-                              className="w-24 bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
+                              className="w-32 bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded transition-all font-semibold text-xs shadow-sm hover:scale-105"
                               title="Delete member"
                             >
                               Delete
@@ -1600,6 +1765,58 @@ export default function AdminMembers() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {!searchQuery && totalMembers > perPage && (
+            <div className="mt-6 flex items-center justify-between border-t border-fitnix-gold/20 pt-4">
+              <div className="text-fitnix-off-white/60 text-sm">
+                Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, totalMembers)} of {totalMembers} members
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => fetchMembers(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-fitnix-dark-light hover:bg-fitnix-dark text-fitnix-gold border border-fitnix-gold rounded-lg transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.ceil(totalMembers / perPage) }, (_, i) => i + 1)
+                    .filter(page => {
+                      // Show first page, last page, current page, and pages around current
+                      const totalPages = Math.ceil(totalMembers / perPage)
+                      return page === 1 || 
+                             page === totalPages || 
+                             (page >= currentPage - 1 && page <= currentPage + 1)
+                    })
+                    .map((page, index, array) => (
+                      <div key={page} className="flex items-center gap-2">
+                        {index > 0 && array[index - 1] !== page - 1 && (
+                          <span className="text-fitnix-off-white/40">...</span>
+                        )}
+                        <button
+                          onClick={() => fetchMembers(page)}
+                          className={`px-3 py-1 rounded-lg font-semibold text-sm transition-colors ${
+                            currentPage === page
+                              ? 'bg-fitnix-gold text-fitnix-dark'
+                              : 'bg-fitnix-dark-light text-fitnix-off-white hover:bg-fitnix-dark border border-fitnix-gold/30'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      </div>
+                    ))}
+                </div>
+                <button
+                  onClick={() => fetchMembers(currentPage + 1)}
+                  disabled={currentPage >= Math.ceil(totalMembers / perPage)}
+                  className="px-4 py-2 bg-fitnix-dark-light hover:bg-fitnix-dark text-fitnix-gold border border-fitnix-gold rounded-lg transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
@@ -1607,7 +1824,7 @@ export default function AdminMembers() {
       {/* Delete Confirmation Modal */}
       {deletingMember && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-fitnix-charcoal border-2 border-red-500 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
+          <div className="bg-fitnix-dark-light border-2 border-red-500 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
             {/* Warning Icon */}
             <div className="flex justify-center mb-4">
               <div className="bg-red-500/20 rounded-full p-3">
@@ -1623,10 +1840,9 @@ export default function AdminMembers() {
             </h3>
 
             {/* Member Info */}
-            <div className="bg-fitnix-black/50 rounded-lg p-4 mb-4 border border-red-500/30">
+            <div className="bg-fitnix-dark/50 rounded-lg p-4 mb-4 border border-red-500/30">
               <p className="text-fitnix-off-white/80 text-sm mb-2">You are about to delete:</p>
-              <p className="text-fitnix-lime font-bold text-lg">{deletingMember.full_name}</p>
-              <p className="text-fitnix-off-white/60 text-sm">Email: {deletingMember.email}</p>
+              <p className="text-fitnix-gold font-bold text-lg">{deletingMember.full_name}</p>
               <p className="text-fitnix-off-white/60 text-sm">Phone: {deletingMember.phone}</p>
             </div>
 
@@ -1639,7 +1855,7 @@ export default function AdminMembers() {
             <div className="flex gap-3">
               <button
                 onClick={cancelDelete}
-                className="flex-1 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
+                className="flex-1 bg-fitnix-dark-light hover:bg-fitnix-dark-light/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
               >
                 Cancel
               </button>
@@ -1657,11 +1873,11 @@ export default function AdminMembers() {
       {/* Freeze Confirmation Modal */}
       {confirmFreeze && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-fitnix-charcoal rounded-2xl shadow-2xl max-w-md w-full p-8 border-2 border-fitnix-lime/30 animate-fade-in">
+          <div className="bg-fitnix-dark-light rounded-2xl shadow-2xl max-w-md w-full p-8 border-2 border-fitnix-gold/30 animate-fade-in">
             {/* Warning Icon */}
             <div className="flex justify-center mb-4">
-              <div className={`rounded-full p-3 ${confirmFreeze.is_frozen ? 'bg-fitnix-lime/20' : 'bg-cyan-500/20'}`}>
-                <svg className={`w-12 h-12 ${confirmFreeze.is_frozen ? 'text-fitnix-lime' : 'text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className={`rounded-full p-3 ${confirmFreeze.is_frozen ? 'bg-fitnix-gold/20' : 'bg-cyan-500/20'}`}>
+                <svg className={`w-12 h-12 ${confirmFreeze.is_frozen ? 'text-fitnix-gold' : 'text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {confirmFreeze.is_frozen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   ) : (
@@ -1677,9 +1893,9 @@ export default function AdminMembers() {
             </h3>
 
             {/* Member Info */}
-            <div className="bg-fitnix-black/50 rounded-lg p-4 mb-4 border border-fitnix-lime/30">
+            <div className="bg-fitnix-dark/50 rounded-lg p-4 mb-4 border border-fitnix-gold/30">
               <p className="text-fitnix-off-white/80 text-sm mb-2">Member:</p>
-              <p className="text-fitnix-lime font-bold text-lg">{confirmFreeze.full_name}</p>
+              <p className="text-fitnix-gold font-bold text-lg">{confirmFreeze.full_name}</p>
               <p className="text-fitnix-off-white/60 text-sm">Phone: {confirmFreeze.phone}</p>
             </div>
 
@@ -1687,7 +1903,7 @@ export default function AdminMembers() {
             <p className="text-fitnix-off-white/80 text-center mb-6">
               {confirmFreeze.is_frozen ? (
                 <>
-                  This will <span className="text-fitnix-lime font-bold">activate</span> the member and allow transaction creation.
+                  This will <span className="text-fitnix-gold font-bold">activate</span> the member and allow transaction creation.
                 </>
               ) : (
                 <>
@@ -1700,7 +1916,7 @@ export default function AdminMembers() {
             <div className="flex gap-3">
               <button
                 onClick={cancelToggleFreeze}
-                className="flex-1 bg-fitnix-charcoal hover:bg-fitnix-charcoal/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
+                className="flex-1 bg-fitnix-dark-light hover:bg-fitnix-dark-light/80 text-fitnix-off-white font-semibold py-3 px-4 rounded-lg transition border border-fitnix-off-white/20"
               >
                 Cancel
               </button>
@@ -1708,7 +1924,7 @@ export default function AdminMembers() {
                 onClick={confirmToggleFreeze}
                 className={`flex-1 font-semibold py-3 px-4 rounded-lg transition shadow-lg ${
                   confirmFreeze.is_frozen
-                    ? 'bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black'
+                    ? 'bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark'
                     : 'bg-cyan-500 hover:bg-cyan-600 text-white'
                 }`}
               >

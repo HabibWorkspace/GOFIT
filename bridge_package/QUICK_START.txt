@@ -1,0 +1,126 @@
+================================================================================
+QUICK START GUIDE - GOFIT ATTENDANCE BRIDGE
+================================================================================
+
+FOR TECHNICAL USERS - 5 MINUTE SETUP
+-------------------------------------
+
+1. DOWNLOAD NSSM
+   https://nssm.cc/download
+   Extract nssm.exe to this folder
+
+2. EDIT CONFIG.TXT
+   - Set APP_URL to your PythonAnywhere URL
+   - Set SECRET_KEY to match your backend .env
+   - Verify CONTROLLER_IP (default: 192.168.1.150)
+
+3. INSTALL
+   Right-click install.bat → Run as administrator
+
+4. VERIFY
+   Run check_status.bat to confirm service is running
+
+DONE! The bridge is now syncing attendance data.
+
+================================================================================
+
+MANUAL TESTING (Before Installing Service)
+-------------------------------------------
+
+1. Install Python dependencies:
+   pip install -r requirements.txt
+
+2. Edit config.txt with your settings
+
+3. Run bridge manually:
+   python bridge.py
+
+4. Press Ctrl+C to stop
+
+5. Check bridge.log for any errors
+
+6. If working correctly, install as service using install.bat
+
+================================================================================
+
+CONFIGURATION REFERENCE
+-----------------------
+
+config.txt settings:
+
+CONTROLLER_IP       - IP of MC-5924T controller (default: 192.168.1.150)
+CONTROLLER_PORT     - Controller port (default: 8000)
+APP_URL             - Your PythonAnywhere URL (no trailing slash)
+SECRET_KEY          - Must match BRIDGE_SECRET_KEY in backend .env
+POLL_INTERVAL       - Seconds between controller polls (default: 30)
+HEARTBEAT_INTERVAL  - Seconds between heartbeats (default: 300)
+
+================================================================================
+
+COMMON COMMANDS
+---------------
+
+Install service:     Right-click install.bat → Run as administrator
+Check status:        Double-click check_status.bat
+View logs:           Open bridge.log in Notepad
+Restart service:     nssm restart GymBridge
+Stop service:        nssm stop GymBridge
+Start service:       nssm start GymBridge
+Uninstall:           Right-click uninstall.bat → Run as administrator
+
+================================================================================
+
+TROUBLESHOOTING CHECKLIST
+--------------------------
+
+□ Python installed and in PATH?
+  Test: python --version
+
+□ NSSM downloaded and in this folder?
+  Check: nssm.exe exists
+
+□ config.txt edited with correct values?
+  Check: APP_URL and SECRET_KEY
+
+□ Can reach controller?
+  Test: ping 192.168.1.150
+
+□ Internet connection working?
+  Test: ping google.com
+
+□ Backend secret key matches?
+  Check: backend/.env BRIDGE_SECRET_KEY
+
+□ Service installed?
+  Test: nssm status GymBridge
+
+□ Any errors in log?
+  Check: bridge.log
+
+================================================================================
+
+FILE STRUCTURE
+--------------
+
+bridge.py           - Main Python script
+config.txt          - Configuration file (EDIT THIS)
+requirements.txt    - Python dependencies
+install.bat         - Service installer (RUN AS ADMIN)
+uninstall.bat       - Service uninstaller (RUN AS ADMIN)
+check_status.bat    - Status checker
+README.txt          - Full documentation
+QUICK_START.txt     - This file
+nssm.exe            - Service manager (DOWNLOAD SEPARATELY)
+bridge.log          - Log file (created automatically)
+pending_records.json - Offline queue (created automatically)
+
+================================================================================
+
+NETWORK DIAGRAM
+---------------
+
+[Turnstile Controller]  ←→  [Front Desk PC]  ←→  [Internet]  ←→  [PythonAnywhere]
+   192.168.1.150:8000       192.168.1.20              ↓              Backend API
+   MC-5924T Device          Bridge Script         WiFi/LAN         Cloud Database
+
+================================================================================

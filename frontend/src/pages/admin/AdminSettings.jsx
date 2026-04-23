@@ -180,9 +180,9 @@ export default function AdminSettings() {
         )}
 
         {success && (
-          <div className="bg-fitnix-charcoal border border-fitnix-lime text-fitnix-off-white px-4 py-3 rounded-xl">
+          <div className="bg-fitnix-dark-light border border-fitnix-gold text-fitnix-off-white px-4 py-3 rounded-xl">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-fitnix-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {success}
@@ -199,7 +199,7 @@ export default function AdminSettings() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-4 sm:px-6 py-3 font-semibold transition-all relative whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'text-fitnix-lime'
+                    ? 'text-fitnix-gold'
                     : 'text-fitnix-off-white/60 hover:text-fitnix-off-white'
                 }`}
               >
@@ -208,7 +208,7 @@ export default function AdminSettings() {
                 </svg>
                 <span>{tab.name}</span>
                 {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-fitnix-lime"></div>
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-fitnix-gold"></div>
                 )}
               </button>
             ))}
@@ -222,8 +222,8 @@ export default function AdminSettings() {
             <form onSubmit={handleProfileUpdate} className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-fitnix-off-white mb-4 flex items-center">
-                  <div className="w-10 h-10 bg-gradient-to-br from-fitnix-lime to-fitnix-dark-lime rounded-lg flex items-center justify-center mr-3">
-                    <svg className="w-5 h-5 text-fitnix-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 bg-gradient-to-br from-fitnix-gold to-fitnix-gold-dark rounded-lg flex items-center justify-center mr-3">
+                    <svg className="w-5 h-5 text-fitnix-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -259,7 +259,7 @@ export default function AdminSettings() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-fitnix-lime hover:bg-fitnix-dark-lime text-fitnix-black font-semibold py-2 px-8 rounded-lg transition-all shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark font-semibold py-2 px-8 rounded-lg transition-all shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Saving...' : 'Save Information'}
                 </button>

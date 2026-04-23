@@ -39,18 +39,24 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
-    # Use absolute path for SQLite on PythonAnywhere
-    import os
-    base_dir = os.path.abspath(os.path.dirname(__file__))
-    database_path = os.path.join(base_dir, 'instance', 'fitnix.db')
-    
-    # Ensure instance directory exists
-    os.makedirs(os.path.dirname(database_path), exist_ok=True)
-    
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{database_path}'
+    TESTING = False
+
+    # Use absolute path for SQLite — works on PythonAnywhere
+    _base_dir = os.path.abspath(os.path.dirname(__file__))
+    _instance_dir = os.path.join(_base_dir, 'instance')
+    os.makedirs(_instance_dir, exist_ok=True)
+
+    # Allow DATABASE_URL override (e.g. absolute path set in .env)
+    _db_url = os.getenv('DATABASE_URL')
+    if _db_url and not _db_url.startswith('sqlite:///'):
+        SQLALCHEMY_DATABASE_URI = _db_url
+    else:
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(_instance_dir, "fitnix.db")}'
+
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
+        'connect_args': {'check_same_thread': False},
     }
 
 

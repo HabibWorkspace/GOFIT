@@ -17,12 +17,14 @@ from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from flask_mail import Mail
 from database import db
 from config import get_config
 
 # Initialize extensions
 jwt = JWTManager()
 socketio = SocketIO()
+mail = Mail()
 
 
 def create_app(config=None):
@@ -52,13 +54,10 @@ def create_app(config=None):
         logging.basicConfig(level=logging.DEBUG)
         app.logger.setLevel(logging.DEBUG)
     
-    # Configure attendance logging with rotation
-    from logging_config import setup_attendance_logging
-    setup_attendance_logging()
-    
     # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
+    mail.init_app(app)
     
     # Initialize Flask-SocketIO with CORS support
     socketio.init_app(app, 
@@ -87,7 +86,7 @@ def create_app(config=None):
          resources={r"/api/*": {
              "origins": allowed_origins,
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "X-Requested-With"],
+             "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "Pragma", "Expires", "X-Requested-With"],
              "supports_credentials": True if app.config.get('ENV') == 'production' else False,
              "expose_headers": ["Content-Type", "Authorization"],
              "max_age": 3600
@@ -98,17 +97,23 @@ def create_app(config=None):
     from routes.admin_complete import admin_complete_bp
     from routes.finance import finance_bp
     from routes.packages import packages_bp
-    
-    try:
-        from routes.attendance import attendance_bp
-        app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
-    except ImportError as e:
-        app.logger.warning(f"Could not import attendance blueprint: {e}")
+    from routes.attendance import attendance_bp
+    from routes.member_profile import member_profile_bp
+    from routes.member_details import member_details_bp
+    from routes.super_admin import super_admin_bp
+    from routes.trainer_commission import trainer_commission_bp
+    from routes.supplements import supplements_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_complete_bp, url_prefix='/api/admin')
+    app.register_blueprint(member_details_bp, url_prefix='/api/admin/member-details')
     app.register_blueprint(finance_bp, url_prefix='/api/finance')
     app.register_blueprint(packages_bp, url_prefix='/api/packages')
+    app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
+    app.register_blueprint(member_profile_bp, url_prefix='/api/member')
+    app.register_blueprint(super_admin_bp, url_prefix='/api/super-admin')
+    app.register_blueprint(trainer_commission_bp, url_prefix='/api')
+    app.register_blueprint(supplements_bp, url_prefix='/api/supplements')
     
     # Add request logging (only in development)
     if app.config.get('ENV') != 'production':
@@ -170,109 +175,21 @@ def create_app(config=None):
             'dirname': os.path.dirname(__file__)
         }), 200
     
-    # Serve frontend static files (must be after API routes)
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_frontend(path):
-        """Serve frontend files for SPA routing."""
-        from flask import send_from_directory
-        import os
-        
-        # Don't serve frontend for API routes
-        if path.startswith('api/'):
-            return jsonify({'error': 'Not found', 'path': request.path}), 404
-        
-        # Get absolute path to frontend dist directory
-        backend_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(backend_dir)
-        frontend_dir = os.path.join(project_root, 'frontend', 'dist')
-        
-        app.logger.info(f"Serving path: {path}")
-        app.logger.info(f"Frontend dir: {frontend_dir}")
-        
-        # Serve assets directory files directly with correct MIME types
-        if path.startswith('assets/'):
-            file_path = os.path.join(frontend_dir, path)
-            app.logger.info(f"Asset request: {file_path}, exists: {os.path.exists(file_path)}")
-            if os.path.exists(file_path):
-                return send_from_directory(frontend_dir, path)
-            return jsonify({'error': 'Asset not found', 'path': path, 'full_path': file_path}), 404
-        
-        # If requesting a file that exists, serve it
-        if path and os.path.exists(os.path.join(frontend_dir, path)):
-            return send_from_directory(frontend_dir, path)
-        
-        # Otherwise serve index.html for SPA routing
-        index_path = os.path.join(frontend_dir, 'index.html')
-        if os.path.exists(index_path):
-            return send_from_directory(frontend_dir, 'index.html')
-        
-        return jsonify({'error': 'Frontend not found', 'frontend_dir': frontend_dir}), 404
+    # Serve frontend static files - DISABLED to test API routes
+    # @app.route('/', defaults={'path': ''})
+    # @app.route('/<path:path>')
+    # def serve_frontend(path):
+    #     """Serve frontend files for SPA routing."""
+    #     pass
     
-    # Add catch-all 404 handler
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({'error': 'Not found', 'path': request.path}), 404
+    # Add catch-all 404 handler - DISABLED FOR TESTING
+    # @app.errorhandler(404)
+    # def not_found(error):
+    #     return jsonify({'error': 'Not found', 'path': request.path}), 404
     
     # Create database tables
     with app.app_context():
         db.create_all()
-    
-    # Initialize attendance service
-    attendance_service = None
-    try:
-        from services.biometric_service import BiometricDeviceClient
-        from services.attendance_service import AttendanceService
-        from services.notification_service import NotificationService
-        
-        app.logger.info("Initializing attendance service...")
-        
-        # Create biometric device client
-        device_ip = os.getenv('BIOMETRIC_DEVICE_IP', '192.168.0.201')
-        device_port = int(os.getenv('BIOMETRIC_DEVICE_PORT', 4370))
-        device_client = BiometricDeviceClient(ip=device_ip, port=device_port)
-        
-        # Create notification service
-        notification_service = NotificationService(socketio=socketio)
-        
-        # Create attendance service with dependencies
-        with app.app_context():
-            attendance_service = AttendanceService(
-                device_client=device_client,
-                db_session=db.session,
-                notification_emitter=notification_service,
-                app=app
-            )
-            
-            # Start sync loop (3-second interval for near-instant notifications)
-            attendance_service.start_sync_loop(interval_seconds=3)
-            
-            app.logger.info("Attendance service initialized and sync loop started")
-        
-    except Exception as e:
-        app.logger.error(f"Failed to initialize attendance service: {str(e)}", exc_info=True)
-        attendance_service = None
-    
-    # Store attendance service and device client in app config for access in routes
-    app.config['attendance_service'] = attendance_service
-    if 'device_client' in locals():
-        app.config['biometric_device_client'] = device_client
-    
-    # Register shutdown handler for graceful cleanup
-    def shutdown_handler():
-        """Handle graceful shutdown of attendance service."""
-        try:
-            if attendance_service and attendance_service._is_running:
-                app.logger.info("Shutting down attendance service...")
-                attendance_service.stop_sync_loop()
-                if attendance_service.device_client.is_connected():
-                    attendance_service.device_client.disconnect()
-                app.logger.info("Attendance service shut down successfully")
-        except Exception as e:
-            app.logger.error(f"Error during attendance service shutdown: {str(e)}", exc_info=True)
-    
-    import atexit
-    atexit.register(shutdown_handler)
     
     return app, socketio
 
