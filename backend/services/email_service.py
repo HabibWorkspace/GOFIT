@@ -16,7 +16,11 @@ class EmailService:
             sender = os.getenv('MAIL_DEFAULT_SENDER') or os.getenv('MAIL_USERNAME')
             
             if not sender:
-                current_app.logger.error("No email sender configured.")
+                current_app.logger.error("EMAIL FAILED: No sender configured. Set MAIL_DEFAULT_SENDER in .env")
+                return False
+
+            if not to_email or '@' not in to_email:
+                current_app.logger.error(f"EMAIL FAILED: Invalid recipient email: {to_email}")
                 return False
             
             subject = "Welcome to GOFIT - Your Membership Details"
@@ -134,12 +138,17 @@ GOFIT - Your Partner in Fitness Excellence
                 html=html_body
             )
             
-            # Send email
+            # Send email — log full details for debugging
+            current_app.logger.info(f"EMAIL: Attempting to send welcome email to {to_email} from {sender}")
+            current_app.logger.info(f"EMAIL: MAIL_SERVER={os.getenv('MAIL_SERVER')} PORT={os.getenv('MAIL_PORT')} TLS={os.getenv('MAIL_USE_TLS')}")
             mail.send(msg)
+            current_app.logger.info(f"EMAIL: Welcome email sent successfully to {to_email}")
             return True
             
         except Exception as e:
-            current_app.logger.error(f"Failed to send welcome email: {str(e)}")
+            current_app.logger.error(f"EMAIL FAILED (welcome): {type(e).__name__}: {str(e)}")
+            import traceback
+            current_app.logger.error(traceback.format_exc())
             return False
     
     @staticmethod
@@ -295,5 +304,7 @@ GOFIT - Your Partner in Fitness Excellence
             return True
             
         except Exception as e:
-            current_app.logger.error(f"Failed to send password reset email: {str(e)}")
+            current_app.logger.error(f"EMAIL FAILED (password reset): {type(e).__name__}: {str(e)}")
+            import traceback
+            current_app.logger.error(traceback.format_exc())
             return False

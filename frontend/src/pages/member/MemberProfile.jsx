@@ -49,7 +49,10 @@ export default function MemberProfile() {
           { 
             fps: 10,
             qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
+            aspectRatio: 1.0,
+            videoConstraints: {
+              facingMode: { ideal: "environment" }  // back camera
+            }
           },
           false
         )
