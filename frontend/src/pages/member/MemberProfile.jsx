@@ -48,15 +48,23 @@ export default function MemberProfile() {
         html5QrcodeScannerRef.current = html5Qrcode
 
         html5Qrcode.start(
-          { facingMode: { ideal: "environment" } },
+          { facingMode: "environment" },
           { fps: 10, qrbox: { width: 220, height: 220 } },
           onScanSuccess,
           () => {} // suppress per-frame errors silently
         ).catch((err) => {
-          console.error('Camera start failed:', err)
-          setError('Could not access camera. Please allow camera permission.')
-          setScanning(false)
-          html5QrcodeScannerRef.current = null
+          // Back camera failed, try any camera
+          html5Qrcode.start(
+            { facingMode: "user" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            onScanSuccess,
+            () => {}
+          ).catch((err2) => {
+            console.error('Camera start failed:', err2)
+            setError('Could not access camera. Please allow camera permission.')
+            setScanning(false)
+            html5QrcodeScannerRef.current = null
+          })
         })
       }
     }, 100)
