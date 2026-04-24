@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import { Html5Qrcode } from 'html5-qrcode'
 import apiClient from '../../services/api'
 
 export default function MemberProfile() {
@@ -44,28 +44,31 @@ export default function MemberProfile() {
 
     setTimeout(() => {
       if (scannerRef.current && !html5QrcodeScannerRef.current) {
-        html5QrcodeScannerRef.current = new Html5QrcodeScanner(
-          "member-qr-reader",
-          { 
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-            videoConstraints: {
-              facingMode: { ideal: "environment" }  // back camera
-            }
-          },
-          false
-        )
+        const html5Qrcode = new Html5Qrcode("member-qr-reader")
+        html5QrcodeScannerRef.current = html5Qrcode
 
-        html5QrcodeScannerRef.current.render(onScanSuccess, onScanError)
+        html5Qrcode.start(
+          { facingMode: { ideal: "environment" } },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          onScanSuccess,
+          () => {} // suppress per-frame errors silently
+        ).catch((err) => {
+          console.error('Camera start failed:', err)
+          setError('Could not access camera. Please allow camera permission.')
+          setScanning(false)
+          html5QrcodeScannerRef.current = null
+        })
       }
     }, 100)
   }
 
   const stopScanning = () => {
     if (html5QrcodeScannerRef.current) {
-      html5QrcodeScannerRef.current.clear()
-      html5QrcodeScannerRef.current = null
+      html5QrcodeScannerRef.current.stop().then(() => {
+        html5QrcodeScannerRef.current = null
+      }).catch(() => {
+        html5QrcodeScannerRef.current = null
+      })
     }
     setScanning(false)
   }
@@ -102,11 +105,6 @@ export default function MemberProfile() {
         setScanResult(null)
       }, 5000)
     }
-  }
-
-  const onScanError = (errorMessage) => {
-    // Ignore scanning errors (they happen frequently)
-    console.log(errorMessage)
   }
 
   const handleManualCheckIn = async () => {
@@ -481,13 +479,44 @@ export default function MemberProfile() {
                 </button>
               </div>
             ) : (
-              <div>
-                <div id="member-qr-reader" ref={scannerRef} className="rounded-lg overflow-hidden"></div>
+              <div className="space-y-4">
+                {/* Professional scanner viewfinder */}
+                <div className="relative bg-black rounded-2xl overflow-hidden" style={{ aspectRatio: '1/1', maxWidth: '320px', margin: '0 auto' }}>
+                  {/* Camera feed — rendered here by Html5Qrcode */}
+                  <div id="member-qr-reader" ref={scannerRef} className="w-full h-full" />
+
+                  {/* Corner brackets overlay */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="relative w-48 h-48">
+                      {/* Top-left */}
+                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-fitnix-gold rounded-tl-lg" />
+                      {/* Top-right */}
+                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-fitnix-gold rounded-tr-lg" />
+                      {/* Bottom-left */}
+                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-fitnix-gold rounded-bl-lg" />
+                      {/* Bottom-right */}
+                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-fitnix-gold rounded-br-lg" />
+                      {/* Scanning line animation */}
+                      <div className="absolute left-0 right-0 h-0.5 bg-fitnix-gold/80 shadow-[0_0_8px_2px_rgba(242,194,40,0.6)] animate-scan-line" />
+                    </div>
+                  </div>
+
+                  {/* Label */}
+                  <div className="absolute bottom-3 left-0 right-0 text-center">
+                    <span className="text-xs text-fitnix-gold/80 font-semibold tracking-widest uppercase bg-black/50 px-3 py-1 rounded-full">
+                      Point at QR Code
+                    </span>
+                  </div>
+                </div>
+
                 <button
                   onClick={stopScanning}
-                  className="w-full mt-4 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                  className="w-full px-4 py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-400 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
-                  Cancel Scanning
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
                 </button>
               </div>
             )}

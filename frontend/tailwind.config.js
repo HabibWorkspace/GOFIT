@@ -83,6 +83,7 @@ export default {
         'bounce-slow': 'bounce 3s infinite',
         'spin-slow': 'spin 3s linear infinite',
         'shimmer': 'shimmer 2s linear infinite',
+        'scan-line': 'scanLine 2s ease-in-out infinite',
       },
       keyframes: {
         glow: {
@@ -112,6 +113,11 @@ export default {
         shimmer: {
           '0%': { backgroundPosition: '-1000px 0' },
           '100%': { backgroundPosition: '1000px 0' },
+        },
+        scanLine: {
+          '0%': { top: '0%' },
+          '50%': { top: '100%' },
+          '100%': { top: '0%' },
         },
       },
       backdropBlur: {
