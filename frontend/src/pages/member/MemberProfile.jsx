@@ -47,24 +47,40 @@ export default function MemberProfile() {
         const html5Qrcode = new Html5Qrcode("member-qr-reader")
         html5QrcodeScannerRef.current = html5Qrcode
 
-        html5Qrcode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 220, height: 220 } },
-          onScanSuccess,
-          () => {} // suppress per-frame errors silently
-        ).catch((err) => {
-          // Back camera failed, try any camera
+        // Get available cameras and pick the back one
+        Html5Qrcode.getCameras().then((cameras) => {
+          if (!cameras || cameras.length === 0) {
+            setError('No camera found on this device.')
+            setScanning(false)
+            html5QrcodeScannerRef.current = null
+            return
+          }
+
+          // Prefer back camera (label contains 'back' or 'rear' or last in list)
+          let cameraId = cameras[cameras.length - 1].id
+          const backCamera = cameras.find(c =>
+            c.label.toLowerCase().includes('back') ||
+            c.label.toLowerCase().includes('rear') ||
+            c.label.toLowerCase().includes('environment')
+          )
+          if (backCamera) cameraId = backCamera.id
+
           html5Qrcode.start(
-            { facingMode: "user" },
+            cameraId,
             { fps: 10, qrbox: { width: 220, height: 220 } },
             onScanSuccess,
             () => {}
-          ).catch((err2) => {
-            console.error('Camera start failed:', err2)
+          ).catch((err) => {
+            console.error('Camera start failed:', err)
             setError('Could not access camera. Please allow camera permission.')
             setScanning(false)
             html5QrcodeScannerRef.current = null
           })
+        }).catch((err) => {
+          console.error('getCameras failed:', err)
+          setError('Could not access camera. Please allow camera permission.')
+          setScanning(false)
+          html5QrcodeScannerRef.current = null
         })
       }
     }, 100)
