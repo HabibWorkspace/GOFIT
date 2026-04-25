@@ -228,7 +228,8 @@ export default function AdminMemberDetails() {
     doc.open()
     doc.write(`<!DOCTYPE html><html><head><title>Receipt</title>
     <style>
-      body{font-family:'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:30px;background:#fff}
+      @page { size: A5; margin: 1cm; }
+      body{font-family:'Segoe UI',sans-serif;max-width:148mm;margin:0 auto;padding:20px;background:#fff}
       .header{text-align:center;border-bottom:4px solid #F2C228;padding-bottom:20px;margin-bottom:20px}
       .logo{font-size:36px;font-weight:900;color:#F2C228;letter-spacing:3px}
       .title{font-size:20px;font-weight:700;color:#333;margin:8px 0}

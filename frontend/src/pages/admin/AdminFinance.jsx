@@ -275,7 +275,7 @@ GOFIT Gym`
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page {
-              size: A4;
+              size: A5;
               margin: 20mm;
             }
             body {

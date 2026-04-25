@@ -204,6 +204,7 @@ export default function TrainerSalarySlip() {
             background: white;
           }
           @page {
+            size: A5;
             margin: 1cm;
           }
         }
