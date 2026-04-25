@@ -644,7 +644,7 @@ GOFIT Gym`
           <div className="relative">
             <input
               type="text"
-              placeholder="Search member by name or ID..."
+              placeholder="Search member → go to their payment history..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full bg-fitnix-dark-light border border-fitnix-gold/20 text-fitnix-off-white px-4 py-3 pl-12 rounded-xl focus:outline-none focus:border-fitnix-gold transition-all"
@@ -932,7 +932,7 @@ GOFIT Gym`
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <div className="flex items-center justify-center gap-2">
-                                  {transaction.status === 'COMPLETED' ? (
+                                  {transaction.status === 'COMPLETED' && (
                                     <button
                                       onClick={() => handlePrintReceipt(transaction)}
                                       className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1 rounded-lg text-sm font-semibold transition-all flex items-center gap-1"
@@ -942,14 +942,13 @@ GOFIT Gym`
                                       </svg>
                                       Print
                                     </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleMarkAsPaid(transaction.id, transaction.full_name)}
-                                      className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-all"
-                                    >
-                                      Mark Paid
-                                    </button>
                                   )}
+                                  <button
+                                    onClick={() => navigate(`/admin/members/${transaction.member_id}`)}
+                                    className="bg-fitnix-dark-light hover:bg-fitnix-gold/10 border border-fitnix-gold/30 text-fitnix-gold px-3 py-1 rounded-lg text-sm font-semibold transition-all"
+                                  >
+                                    View
+                                  </button>
                                 </div>
                               </td>
                             </tr>

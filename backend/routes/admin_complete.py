@@ -24,14 +24,28 @@ admin_complete_bp = Blueprint('admin_complete', __name__)
 @admin_complete_bp.route('/members', methods=['GET'])
 @require_admin
 def list_members():
-    """List all members with pagination."""
+    """List all members with pagination and optional search."""
     from datetime import datetime, timedelta
     from models.attendance import Attendance
     
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
+    search = request.args.get('search', '').strip()
     
-    paginated = MemberProfile.query.paginate(page=page, per_page=per_page, error_out=False)
+    query = MemberProfile.query
+    
+    # Apply search filter if provided
+    if search:
+        search_lower = f'%{search.lower()}%'
+        query = query.filter(
+            db.or_(
+                db.func.lower(MemberProfile.full_name).like(search_lower),
+                db.cast(MemberProfile.member_number, db.String).like(f'%{search}%'),
+                MemberProfile.phone.like(f'%{search}%')
+            )
+        )
+    
+    paginated = query.paginate(page=page, per_page=per_page, error_out=False)
     
     # Calculate 10 days ago for inactive check
     now = datetime.utcnow()
@@ -966,6 +980,59 @@ def update_member(member_id):
                 }
             )
         
+        # ── Auto-create PENDING transaction when package is newly assigned ──────
+        # Only create if package changed AND package_expiry_date is set
+        old_package_id = before_state.get('current_package_id')
+        new_package_id = member.current_package_id
+        package_changed = new_package_id and new_package_id != old_package_id
+
+        if package_changed and member.package_expiry_date:
+            package = Package.query.get(new_package_id)
+            if package:
+                # Check no pending transaction already exists for this expiry period
+                existing = Transaction.query.filter(
+                    Transaction.member_id == member.id,
+                    Transaction.status == TransactionStatus.PENDING,
+                    Transaction.due_date == member.package_expiry_date
+                ).first()
+
+                if not existing:
+                    trainer_fee = 0
+                    if member.trainer_id:
+                        trainer = TrainerProfile.query.get(member.trainer_id)
+                        if trainer and trainer.salary_rate:
+                            trainer_fee = float(trainer.salary_rate)
+
+                    package_price = float(package.price) if package.price else 0
+                    total_amount = package_price + trainer_fee
+
+                    new_txn = Transaction(
+                        member_id=member.id,
+                        amount=total_amount,
+                        transaction_type=TransactionType.PAYMENT,
+                        status=TransactionStatus.PENDING,
+                        due_date=member.package_expiry_date,  # due = expiry date
+                        package_price=package_price,
+                        trainer_fee=trainer_fee,
+                        discount_amount=0,
+                        discount_type='fixed',
+                        created_at=datetime.utcnow()
+                    )
+                    db.session.add(new_txn)
+                    log_action(
+                        action='created transaction',
+                        target_type='Transaction',
+                        target_id=new_txn.id,
+                        details={
+                            'member_number': member.member_number,
+                            'member_name': member.full_name,
+                            'amount': total_amount,
+                            'transaction_type': 'PAYMENT',
+                            'due_date': member.package_expiry_date.isoformat(),
+                        }
+                    )
+        # ─────────────────────────────────────────────────────────────────────────
+
         db.session.commit()
         
         member_dict = member.to_dict()

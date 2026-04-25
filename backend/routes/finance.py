@@ -105,7 +105,30 @@ def mark_payment_received(transaction_id):
     try:
         transaction.status = TransactionStatus.COMPLETED
         transaction.paid_date = paid_date
+
+        # ── Update member's package_expiry_date to match this transaction's due_date ──
+        # The due_date on the transaction IS the expiry date set when package was assigned
+        member = MemberProfile.query.get(transaction.member_id)
+        if member and transaction.due_date:
+            member.package_expiry_date = transaction.due_date
+
         db.session.commit()
+
+        # Log the action
+        from utils.audit import log_action
+        if member:
+            log_action(
+                action='marked transaction paid',
+                target_type='Transaction',
+                target_id=transaction.id,
+                details={
+                    'member_number': member.member_number,
+                    'member_name': member.full_name,
+                    'amount': float(transaction.amount),
+                    'transaction_type': transaction.transaction_type.value if transaction.transaction_type else 'PAYMENT',
+                    'paid_date': paid_date.isoformat(),
+                }
+            )
         
         return jsonify({
             'id': transaction.id,

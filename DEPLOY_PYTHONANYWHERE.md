@@ -24,7 +24,7 @@ This creates `frontend/dist/` — the compiled React app.
 ### Option A — Git (recommended)
 In PythonAnywhere Bash console:
 ```bash
-git clone https://github.com/yourusername/gofit.git ~/gofit
+git clone https://github.com/HabibWorkspace/GOFIT ~/gofit
 ```
 
 ### Option B — Manual Upload
@@ -59,7 +59,7 @@ Edit these values:
 - `MAIL_USERNAME` — your Gmail address
 - `MAIL_PASSWORD` — your Gmail App Password
 - `MAIL_DEFAULT_SENDER` — same as MAIL_USERNAME
-- `FRONTEND_URL` — `https://yourusername.pythonanywhere.com`
+- `FRONTEND_URL` — `https://habib13564855.pythonanywhere.com`
 - Replace `yourusername` with your actual PythonAnywhere username
 
 ---

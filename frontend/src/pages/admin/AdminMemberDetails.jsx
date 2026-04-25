@@ -209,6 +209,60 @@ export default function AdminMemberDetails() {
     return `Rs. ${parseFloat(amount).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
+  const handleMarkTransactionPaid = async (transactionId) => {
+    try {
+      await apiClient.post(`/admin/finance/transactions/${transactionId}/mark-paid`)
+      setSuccess('Payment marked as received!')
+      await fetchMemberDetails()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to mark payment as paid')
+    }
+  }
+
+  const handlePrintTransactionReceipt = (txn) => {
+    const iframe = document.createElement('iframe')
+    iframe.style.cssText = 'position:absolute;width:0;height:0;border:none'
+    document.body.appendChild(iframe)
+    const doc = iframe.contentWindow.document
+    const shortId = txn.id ? txn.id.slice(-8).toUpperCase() : 'N/A'
+    doc.open()
+    doc.write(`<!DOCTYPE html><html><head><title>Receipt</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:30px;background:#fff}
+      .header{text-align:center;border-bottom:4px solid #F2C228;padding-bottom:20px;margin-bottom:20px}
+      .logo{font-size:36px;font-weight:900;color:#F2C228;letter-spacing:3px}
+      .title{font-size:20px;font-weight:700;color:#333;margin:8px 0}
+      .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
+      .label{color:#666;font-weight:600}
+      .value{color:#333;font-weight:700}
+      .amount{font-size:32px;font-weight:900;color:#F2C228;text-align:center;padding:20px;background:#0B0B0B;border-radius:10px;margin:20px 0}
+      .footer{text-align:center;color:#999;font-size:12px;margin-top:20px}
+      .status{display:inline-block;padding:4px 12px;border-radius:20px;font-weight:700;font-size:13px;background:#d4edda;color:#155724}
+    </style></head><body>
+    <div class="header">
+      <div class="logo">GOFIT</div>
+      <div class="title">Payment Receipt</div>
+      <div style="color:#999;font-size:13px">${new Date().toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'})}</div>
+    </div>
+    <div class="row"><span class="label">Receipt No</span><span class="value">#${shortId}</span></div>
+    <div class="row"><span class="label">Member</span><span class="value">${member?.full_name || 'N/A'}</span></div>
+    <div class="row"><span class="label">Member ID</span><span class="value">${member?.member_number || 'N/A'}</span></div>
+    <div class="row"><span class="label">Type</span><span class="value">${txn.transaction_type || 'PAYMENT'}</span></div>
+    <div class="row"><span class="label">Due Date</span><span class="value">${txn.due_date ? new Date(txn.due_date).toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}) : 'N/A'}</span></div>
+    <div class="row"><span class="label">Paid Date</span><span class="value">${txn.paid_date ? new Date(txn.paid_date).toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}) : 'N/A'}</span></div>
+    <div class="row"><span class="label">Status</span><span class="value"><span class="status">${txn.status}</span></span></div>
+    <div class="amount">Rs. ${parseFloat(txn.amount).toLocaleString('en-PK')}</div>
+    <div class="footer">GOFIT Gym Management System &bull; Karachi, Pakistan<br>Thank You!</div>
+    </body></html>`)
+    doc.close()
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.contentWindow.print()
+        setTimeout(() => document.body.removeChild(iframe), 1000)
+      }, 300)
+    }
+  }
+
   const handleSetPassword = async () => {
     if (!newPassword || !confirmPassword) {
       setError('Please enter both password fields')
@@ -1065,35 +1119,6 @@ export default function AdminMemberDetails() {
 
           {member.membership_history && member.membership_history.length > 0 ? (
             <>
-              {/* Timeline View */}
-              <div className="mb-8 overflow-x-auto">
-                <div className="min-w-full inline-block">
-                  <div className="relative">
-                    {/* Timeline line */}
-                    <div className="absolute left-0 right-0 top-1/2 h-1 bg-fitnix-gold/20"></div>
-                    
-                    {/* Timeline items */}
-                    <div className="flex justify-between items-center relative z-10 pb-4">
-                      {member.membership_history.map((period, index) => (
-                        <div key={index} className="flex flex-col items-center min-w-[120px] px-2">
-                          <div className="w-4 h-4 rounded-full bg-fitnix-gold border-4 border-fitnix-dark mb-2"></div>
-                          <div className="text-center">
-                            <p className="text-xs text-fitnix-gold font-semibold">{period.package_name}</p>
-                            <p className="text-xs text-fitnix-off-white/50 mt-1">
-                              {new Date(period.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </p>
-                            <p className="text-xs text-fitnix-off-white/50">to</p>
-                            <p className="text-xs text-fitnix-off-white/50">
-                              {new Date(period.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Table View */}
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1141,34 +1166,35 @@ export default function AdminMemberDetails() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-fitnix-gold/20">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Date</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Month</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Type</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Amount</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Due Date</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Paid Date</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {member.transactions.map((txn, index) => (
                     <tr key={index} className="border-b border-fitnix-off-white/5 hover:bg-fitnix-dark-light/30 transition-colors">
-                      <td className="py-4 px-4 text-fitnix-off-white">{formatDate(txn.created_at)}</td>
+                      <td className="py-4 px-4 text-fitnix-off-white/70 font-medium text-sm">
+                        {txn.due_date ? new Date(txn.due_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                      </td>
                       <td className="py-4 px-4">
                         <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                          txn.transaction_type === 'ADMISSION' 
-                            ? 'bg-purple-500/20 text-purple-400' 
-                            : txn.transaction_type === 'PACKAGE'
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'bg-green-500/20 text-green-400'
+                          txn.transaction_type === 'ADMISSION'
+                            ? 'bg-purple-500/20 text-purple-400'
+                            : 'bg-fitnix-gold/20 text-fitnix-gold'
                         }`}>
-                          {txn.transaction_type}
+                          {txn.transaction_type === 'ADMISSION' ? 'Admission Fee' : 'Package Fee'}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-fitnix-gold font-semibold">{formatCurrency(txn.amount)}</td>
                       <td className="py-4 px-4">
                         <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                          txn.status === 'COMPLETED' 
-                            ? 'bg-green-500/20 text-green-400' 
+                          txn.status === 'COMPLETED'
+                            ? 'bg-green-500/20 text-green-400'
                             : txn.status === 'PENDING'
                             ? 'bg-yellow-500/20 text-yellow-400'
                             : 'bg-red-500/20 text-red-400'
@@ -1177,7 +1203,29 @@ export default function AdminMemberDetails() {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-fitnix-off-white">{formatDate(txn.due_date)}</td>
-                      <td className="py-4 px-4 text-fitnix-off-white">{formatDate(txn.paid_date)}</td>
+                      <td className="py-4 px-4 text-fitnix-off-white">{txn.paid_date ? formatDate(txn.paid_date) : '—'}</td>
+                      <td className="py-4 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {txn.status !== 'COMPLETED' ? (
+                            <button
+                              onClick={() => handleMarkTransactionPaid(txn.id)}
+                              className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                            >
+                              Mark Paid
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handlePrintTransactionReceipt(txn)}
+                              className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                              </svg>
+                              Print
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
