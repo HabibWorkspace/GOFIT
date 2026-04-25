@@ -139,6 +139,7 @@ export default function TrainerCommissionProfile() {
         <title>Trainer Commission Receipt</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
+          @page { size: A5; margin: 1cm; }
           body { 
             font-family: 'Arial', sans-serif;
             padding: 40px;

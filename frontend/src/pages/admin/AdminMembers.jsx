@@ -630,7 +630,7 @@ export default function AdminMembers() {
         <title>Payment Receipt - ${member.full_name || member.username}</title>
         <style>
           @page {
-            size: A4;
+            size: A5;
             margin: 15mm;
           }
           body {
