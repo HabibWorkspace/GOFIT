@@ -36,14 +36,25 @@ def list_members():
     
     # Apply search filter if provided
     if search:
-        search_lower = f'%{search.lower()}%'
-        query = query.filter(
-            db.or_(
-                db.func.lower(MemberProfile.full_name).like(search_lower),
-                db.cast(MemberProfile.member_number, db.String).like(f'%{search}%'),
-                MemberProfile.phone.like(f'%{search}%')
+        search_lower = f'{search.lower()}%'  # starts-with only
+        # For numeric search (member ID), use exact match first
+        try:
+            search_int = int(search)
+            query = query.filter(
+                db.or_(
+                    MemberProfile.member_number == search_int,  # exact ID match
+                    db.func.lower(MemberProfile.full_name).like(search_lower),
+                    MemberProfile.phone.like(f'{search}%')
+                )
             )
-        )
+        except ValueError:
+            # Non-numeric: search name and phone with starts-with
+            query = query.filter(
+                db.or_(
+                    db.func.lower(MemberProfile.full_name).like(search_lower),
+                    MemberProfile.phone.like(f'{search}%')
+                )
+            )
     
     paginated = query.paginate(page=page, per_page=per_page, error_out=False)
     
@@ -1397,7 +1408,7 @@ def update_trainer_fixed(trainer_id):
 @admin_complete_bp.route('/trainers/<trainer_id>', methods=['DELETE'])
 @require_admin
 def delete_trainer(trainer_id):
-    """Delete a trainer."""
+    """Delete a trainer and all related records."""
     trainer = TrainerProfile.query.get(trainer_id)
     if not trainer:
         return jsonify({'error': 'Trainer not found'}), 404
@@ -1414,11 +1425,23 @@ def delete_trainer(trainer_id):
                 'specialization': trainer.specialization
             }
         )
-        
+
+        # ── Remove trainer from members who have this trainer assigned ──
+        MemberProfile.query.filter_by(trainer_id=trainer_id).update(
+            {'trainer_id': None}, synchronize_session=False
+        )
+
+        # ── Delete trainer commission records (trainer_member_charges) ──
+        from models.trainer_commission import TrainerMemberCharge, TrainerSalarySlip
+        TrainerMemberCharge.query.filter_by(trainer_id=trainer_id).delete(synchronize_session=False)
+        TrainerSalarySlip.query.filter_by(trainer_id=trainer_id).delete(synchronize_session=False)
+
+        # ── Delete the trainer profile and user account ──
         user = User.query.get(trainer.user_id)
         db.session.delete(trainer)
         if user:
             db.session.delete(user)
+
         db.session.commit()
         
         return jsonify({'message': 'Trainer deleted successfully'}), 200

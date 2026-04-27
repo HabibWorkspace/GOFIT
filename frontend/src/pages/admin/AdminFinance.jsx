@@ -276,24 +276,25 @@ GOFIT Gym`
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page {
               size: A5;
-              margin: 20mm;
+              margin: 8mm;
             }
             body {
               font-family: 'Arial', sans-serif;
               background: white;
               color: #333;
-              padding: 40px;
-              max-width: 900px;
+              padding: 15px;
+              max-width: 148mm;
               margin: 0 auto;
+              font-size: 10px;
             }
             .header {
               display: flex;
               justify-content: space-between;
               align-items: flex-start;
-              margin-bottom: 30px;
+              margin-bottom: 10px;
             }
             .header-left {
-              font-size: 14px;
+              font-size: 9px;
               font-weight: bold;
               color: #666;
               letter-spacing: 1px;
@@ -302,98 +303,88 @@ GOFIT Gym`
               text-align: right;
             }
             .receipt-number {
-              font-size: 16px;
+              font-size: 10px;
               font-weight: bold;
               color: #000;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
             }
             .receipt-date {
-              font-size: 12px;
+              font-size: 9px;
               color: #666;
             }
             .logo-section {
               text-align: center;
-              margin: 40px 0;
+              margin: 10px 0;
             }
             .logo {
-              width: 400px;
+              width: 180px;
               height: auto;
               max-width: 100%;
             }
             .section {
-              border: 2px solid #000;
-              padding: 20px;
-              margin: 20px 0;
+              border: 1px solid #000;
+              padding: 8px 10px;
+              margin: 6px 0;
               position: relative;
             }
             .section-title {
               position: absolute;
-              top: -12px;
-              left: 20px;
+              top: -7px;
+              left: 10px;
               background: white;
-              padding: 0 10px;
+              padding: 0 6px;
               font-weight: bold;
-              font-size: 12px;
+              font-size: 8px;
               letter-spacing: 1px;
               color: #000;
             }
             .info-row {
               display: flex;
               justify-content: space-between;
-              padding: 12px 0;
+              padding: 4px 0;
               border-bottom: 1px dotted #ccc;
             }
-            .info-row:last-child {
-              border-bottom: none;
-            }
-            .info-label {
-              font-weight: bold;
-              color: #000;
-              font-size: 14px;
-            }
-            .info-value {
-              color: #333;
-              font-size: 14px;
-              text-align: right;
-            }
+            .info-row:last-child { border-bottom: none; }
+            .info-label { font-weight: bold; color: #000; font-size: 9px; }
+            .info-value { color: #333; font-size: 9px; text-align: right; }
             .total-section {
-              border: 2px solid #000;
-              padding: 30px;
-              margin: 20px 0;
+              border: 1px solid #000;
+              padding: 10px;
+              margin: 6px 0;
               text-align: center;
             }
             .total-label {
-              font-size: 14px;
+              font-size: 9px;
               font-weight: bold;
               letter-spacing: 2px;
-              margin-bottom: 15px;
+              margin-bottom: 4px;
               color: #000;
             }
             .total-amount {
-              font-size: 48px;
+              font-size: 24px;
               font-weight: bold;
               color: #000;
             }
             .notice-section {
-              border: 2px solid #000;
-              padding: 15px;
-              margin: 20px 0;
+              border: 1px solid #000;
+              padding: 6px;
+              margin: 6px 0;
               text-align: center;
-              font-size: 12px;
+              font-size: 8px;
               font-weight: bold;
               letter-spacing: 1px;
             }
             .footer {
               text-align: center;
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 2px solid #000;
-              font-size: 16px;
+              margin-top: 10px;
+              padding-top: 8px;
+              border-top: 1px solid #000;
+              font-size: 10px;
               font-weight: bold;
               color: #333;
             }
             @media print {
-              body { padding: 20px; }
+              body { padding: 5px; }
               .section, .total-section, .notice-section { page-break-inside: avoid; }
             }
           </style>

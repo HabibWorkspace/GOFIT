@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
-import DatePicker from 'react-datepicker'
-import 'react-datepicker/dist/react-datepicker.css'
 
 export default function AdminTrainers() {
   const [trainers, setTrainers] = useState([])
@@ -17,8 +15,7 @@ export default function AdminTrainers() {
   const [formData, setFormData] = useState({
     full_name: '',
     gender: '',
-    date_of_birth: '',
-    phone: '',
+        phone: '',
     cnic: '',
     specialization: '',
     salary_rate: '',
@@ -63,8 +60,7 @@ export default function AdminTrainers() {
         const updateData = {
           full_name: formData.full_name,
           gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
-          phone: formData.phone,
+                    phone: formData.phone,
           cnic: formData.cnic,
           specialization: formData.specialization,
           salary_rate: formData.salary_rate,
@@ -78,8 +74,7 @@ export default function AdminTrainers() {
         const createData = {
           full_name: formData.full_name,
           gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
-          phone: formData.phone,
+                    phone: formData.phone,
           cnic: formData.cnic,
           specialization: formData.specialization,
           salary_rate: formData.salary_rate,
@@ -89,7 +84,7 @@ export default function AdminTrainers() {
         setSuccess('Trainer created successfully')
       }
       
-      setFormData({ username: '', password: '', full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
+      setFormData({ username: '', password: '', full_name: '', gender: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
       setShowForm(false)
       fetchTrainers()
     } catch (err) {
@@ -100,21 +95,9 @@ export default function AdminTrainers() {
   const handleEdit = (trainer) => {
     setEditingTrainer(trainer)
     
-    // Format date_of_birth for input field (needs YYYY-MM-DD format)
-    let dobFormatted = '';
-    if (trainer.date_of_birth) {
-      try {
-        const date = new Date(trainer.date_of_birth);
-        dobFormatted = date.toISOString().split('T')[0];
-      } catch (e) {
-        console.error('Error formatting date:', e);
-      }
-    }
-    
     const formDataToSet = {
       full_name: trainer.full_name || '',
       gender: trainer.gender || '',
-      date_of_birth: dobFormatted,
       phone: trainer.phone || '',
       cnic: trainer.cnic || '',
       specialization: trainer.specialization || '',
@@ -135,7 +118,7 @@ export default function AdminTrainers() {
 
   const handleCancelEdit = () => {
     setEditingTrainer(null)
-    setFormData({ full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
+    setFormData({ full_name: '', gender: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
     setShowForm(false)
     setShowPassword(false)
     setError('')
@@ -218,7 +201,7 @@ export default function AdminTrainers() {
             onClick={() => {
               if (showForm && !editingTrainer) {
                 setShowForm(false)
-                setFormData({ full_name: '', gender: '', date_of_birth: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
+                setFormData({ full_name: '', gender: '', phone: '', cnic: '', specialization: '', salary_rate: '', availability: '' })
               } else if (editingTrainer) {
                 handleCancelEdit()
               } else {
@@ -305,26 +288,6 @@ export default function AdminTrainers() {
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                   </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
-                    Date of Birth
-                  </label>
-                  <DatePicker
-                    selected={formData.date_of_birth ? new Date(formData.date_of_birth) : null}
-                    onChange={(date) => setFormData({ ...formData, date_of_birth: date ? date.toISOString().split('T')[0] : '' })}
-                    dateFormat="MMM dd, yyyy"
-                    className="fitnix-input w-full"
-                    placeholderText="Select date of birth"
-                    showMonthDropdown
-                    showYearDropdown
-                    dropdownMode="select"
-                    maxDate={new Date()}
-                    yearDropdownItemNumber={100}
-                    scrollableYearDropdown
-                    isClearable
-                  />
                 </div>
                 
                 <div>
@@ -429,7 +392,6 @@ export default function AdminTrainers() {
                 <tr className="bg-fitnix-dark border-b-2 border-fitnix-gold/30">
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Full Name</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Gender</th>
-                  <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">DOB</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">CNIC</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Phone</th>
                   <th className="px-6 py-5 text-left text-sm font-bold text-fitnix-gold uppercase tracking-wider whitespace-nowrap">Specialization</th>
@@ -457,9 +419,6 @@ export default function AdminTrainers() {
                     <tr key={trainer.id} className={`hover:bg-fitnix-dark/50 transition-colors border-b border-fitnix-gold/10 ${index % 2 === 0 ? 'bg-fitnix-dark-light/20' : 'bg-fitnix-dark-light/40'}`}>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.full_name || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.gender || 'N/A'}</td>
-                      <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">
-                        {trainer.date_of_birth ? new Date(trainer.date_of_birth).toLocaleDateString() : 'N/A'}
-                      </td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.cnic || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.phone || 'N/A'}</td>
                       <td className="px-6 py-6 text-base text-fitnix-off-white whitespace-nowrap">{trainer.specialization || 'N/A'}</td>
@@ -533,7 +492,7 @@ export default function AdminTrainers() {
             {/* Trainer Info */}
             <div className="bg-fitnix-dark/50 rounded-lg p-4 mb-4 border border-red-500/30">
               <p className="text-fitnix-off-white/80 text-sm mb-2">You are about to delete:</p>
-              <p className="text-fitnix-gold font-bold text-lg">{deletingTrainer.username}</p>
+              <p className="text-fitnix-gold font-bold text-lg">{deletingTrainer.full_name || deletingTrainer.username}</p>
               <p className="text-fitnix-off-white/60 text-sm">Specialization: {deletingTrainer.specialization}</p>
               {deletingTrainer.phone && <p className="text-fitnix-off-white/60 text-sm">Phone: {deletingTrainer.phone}</p>}
             </div>

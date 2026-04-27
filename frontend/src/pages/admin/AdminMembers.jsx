@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
@@ -26,6 +26,10 @@ export default function AdminMembers() {
   const [confirmFreeze, setConfirmFreeze] = useState(null)
   const [profileImage, setProfileImage] = useState(null)
   const [profileImagePreview, setProfileImagePreview] = useState(null)
+  const [showCamera, setShowCamera] = useState(false)
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const streamRef = useRef(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalMembers, setTotalMembers] = useState(0)
   const [perPage] = useState(50)
@@ -420,6 +424,41 @@ export default function AdminMembers() {
     }
   }
 
+  const startCamera = async () => {
+    setShowCamera(true)
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        streamRef.current = stream
+        if (videoRef.current) videoRef.current.srcObject = stream
+      } catch (err) {
+        setError('Could not access camera. Please allow camera permission.')
+        setShowCamera(false)
+      }
+    }, 100)
+  }
+
+  const capturePhoto = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setProfileImagePreview(dataUrl)
+    setProfileImage({ name: 'camera-capture.jpg' })
+    stopCamera()
+  }
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    setShowCamera(false)
+  }
+
   const handleCancelEdit = () => {
     setEditingMember(null)
     setProfileImage(null)
@@ -485,7 +524,6 @@ export default function AdminMembers() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      // If search is cleared, fetch first page
       fetchMembers(1)
       return
     }
@@ -493,35 +531,56 @@ export default function AdminMembers() {
     try {
       setLoading(true)
       const query = searchQuery.toLowerCase().trim()
-      
-      // Fetch all members for search (backend will handle this)
+      const isNumeric = /^\d+$/.test(query)
+
       const response = await apiClient.get(`/admin/members?per_page=1000&_t=${Date.now()}`, {
-        headers: { 
-          'Cache-Control': 'no-cache', 
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache', 'Expires': '0' }
       })
-      
+
       const allMembers = response.data.members || []
-      
-      // Filter on frontend
+
       const filtered = allMembers.filter(member => {
-        // Search by member_number (ID)
-        if (member.member_number && member.member_number.toString().includes(query)) {
-          return true
+        // Member ID search — exact match first, then starts-with for partial
+        if (isNumeric && member.member_number) {
+          const idStr = member.member_number.toString()
+          // Exact match OR starts-with (so "123" matches 123 and 1230 but NOT 1234 unless typed fully)
+          if (idStr === query) return true
+          if (idStr.startsWith(query)) return true
+          return false
         }
-        // Search by full name
-        if (member.full_name && member.full_name.toLowerCase().includes(query)) {
-          return true
+
+        // Name search — word boundary aware: match start of any word in the name
+        if (member.full_name) {
+          const name = member.full_name.toLowerCase()
+          // Exact match or starts-with any word in the name
+          if (name === query) return true
+          if (name.startsWith(query)) return true
+          // Match start of any word (e.g. "ham" matches "Muhammad Hamza")
+          const words = name.split(/\s+/)
+          if (words.some(word => word.startsWith(query))) return true
         }
-        // Search by phone
-        if (member.phone && member.phone.toLowerCase().includes(query)) {
-          return true
+
+        // Phone — exact or starts-with
+        if (member.phone) {
+          const phone = member.phone.replace(/\s+/g, '')
+          const q = query.replace(/\s+/g, '')
+          if (phone === q || phone.startsWith(q)) return true
         }
+
         return false
       })
-      
+
+      // Sort results: exact matches first, then starts-with
+      filtered.sort((a, b) => {
+        const aId = a.member_number?.toString() || ''
+        const bId = b.member_number?.toString() || ''
+        const aExact = aId === query || a.full_name?.toLowerCase() === query
+        const bExact = bId === query || b.full_name?.toLowerCase() === query
+        if (aExact && !bExact) return -1
+        if (!aExact && bExact) return 1
+        return (a.member_number || 0) - (b.member_number || 0)
+      })
+
       setMembers(filtered)
       setFilteredMembers(filtered)
       setTotalMembers(filtered.length)
@@ -631,190 +690,119 @@ export default function AdminMembers() {
         <style>
           @page {
             size: A5;
-            margin: 15mm;
+            margin: 10mm;
           }
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 210mm;
+            max-width: 148mm;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
             background: #fff;
-            font-size: 28px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
           }
           .header {
             text-align: center;
-            border-bottom: 6px solid #F2C228;
-            padding-bottom: 40px;
-            margin-bottom: 50px;
-            page-break-after: avoid;
+            border-bottom: 3px solid #F2C228;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
           }
           .logo {
-            width: 350px;
-            height: 220px;
-            margin: 0 auto 30px;
+            width: 120px;
+            height: 80px;
+            margin: 0 auto 8px;
             display: block;
             object-fit: contain;
           }
-          .gym-name {
-            color: #F2C228;
-            margin: 25px 0;
-            font-size: 68px;
-            font-weight: bold;
-            text-shadow: 3px 3px 8px rgba(0,0,0,0.3);
-            letter-spacing: 1px;
-          }
-          .receipt-title {
-            font-size: 48px;
-            font-weight: 800;
-            color: #333;
-            margin: 25px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-          }
           .receipt-date {
             color: #666;
-            font-size: 30px;
+            font-size: 11px;
             font-weight: 600;
-            margin-top: 15px;
+            margin-top: 4px;
           }
           .receipt-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 35px;
-            margin-bottom: 50px;
-            page-break-inside: avoid;
+            gap: 10px;
+            margin-bottom: 14px;
           }
           .info-section {
             background: #f8f9fa;
-            padding: 35px;
-            border-radius: 18px;
-            border: 3px solid #e9ecef;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
           }
           .info-section h3 {
             margin-top: 0;
-            margin-bottom: 30px;
+            margin-bottom: 8px;
             color: #0B0B0B;
-            font-size: 36px;
+            font-size: 11px;
             font-weight: 800;
-            border-bottom: 5px solid #F2C228;
-            padding-bottom: 15px;
+            border-bottom: 2px solid #F2C228;
+            padding-bottom: 5px;
             text-transform: uppercase;
-            letter-spacing: 1px;
           }
           .info-row {
             display: flex;
             justify-content: space-between;
-            margin: 22px 0;
-            padding: 15px 0;
-            border-bottom: 2px solid #e9ecef;
+            margin: 5px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid #e9ecef;
           }
-          .info-row:last-child {
-            border-bottom: none;
-          }
-          .info-label {
-            font-weight: 800;
-            color: #495057;
-            font-size: 28px;
-          }
-          .info-value {
-            color: #212529;
-            font-size: 28px;
-            text-align: right;
-            font-weight: 700;
-            max-width: 60%;
-            word-wrap: break-word;
-          }
+          .info-row:last-child { border-bottom: none; }
+          .info-label { font-weight: 700; color: #495057; font-size: 10px; }
+          .info-value { color: #212529; font-size: 10px; text-align: right; font-weight: 600; max-width: 60%; word-wrap: break-word; }
           .payment-details {
-            background: linear-gradient(135deg, #F2C228 0%, #9FE600 100%);
-            padding: 50px;
-            border-radius: 24px;
-            margin: 50px 0;
-            box-shadow: 0 10px 25px rgba(242, 194, 40, 0.5);
-            page-break-inside: avoid;
+            background: linear-gradient(135deg, #F2C228 0%, #D4A017 100%);
+            padding: 14px;
+            border-radius: 8px;
+            margin: 10px 0;
           }
           .payment-details h2 {
             margin-top: 0;
-            margin-bottom: 40px;
+            margin-bottom: 10px;
             color: #0B0B0B;
-            font-size: 48px;
+            font-size: 13px;
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 2px;
           }
-          .payment-details .info-row {
-            border-bottom: 3px solid rgba(11, 11, 11, 0.25);
-            padding: 20px 0;
-            margin: 25px 0;
-          }
-          .payment-details .info-label {
-            color: #0B0B0B;
-            font-weight: 800;
-            font-size: 32px;
-          }
-          .payment-details .info-value {
-            color: #0B0B0B;
-            font-weight: 800;
-            font-size: 32px;
-          }
+          .payment-details .info-row { border-bottom: 1px solid rgba(11,11,11,0.2); padding: 5px 0; margin: 6px 0; }
+          .payment-details .info-label { color: #0B0B0B; font-weight: 800; font-size: 11px; }
+          .payment-details .info-value { color: #0B0B0B; font-weight: 800; font-size: 11px; }
           .amount {
-            font-size: 88px;
+            font-size: 28px;
             font-weight: 900;
             color: #0B0B0B;
             text-align: center;
-            margin: 50px 0 30px 0;
-            padding: 45px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 20px;
-            letter-spacing: 3px;
-            border: 4px solid rgba(11, 11, 11, 0.2);
+            margin: 10px 0 6px 0;
+            padding: 12px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 8px;
+            letter-spacing: 1px;
+            border: 2px solid rgba(11,11,11,0.2);
           }
           .footer {
             text-align: center;
-            margin-top: 60px;
-            padding-top: 35px;
-            border-top: 5px solid #e9ecef;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 2px solid #e9ecef;
             color: #6c757d;
-            page-break-inside: avoid;
           }
-          .footer p {
-            margin: 15px 0;
-            font-size: 28px;
-            line-height: 1.8;
-          }
-          .footer strong {
-            color: #0B0B0B;
-            font-size: 30px;
-          }
+          .footer p { margin: 4px 0; font-size: 10px; }
           .status {
             display: inline-block;
-            padding: 15px 35px;
-            border-radius: 35px;
+            padding: 3px 10px;
+            border-radius: 12px;
             font-weight: 900;
-            font-size: 30px;
+            font-size: 10px;
             background: ${payment.status === 'COMPLETED' ? '#10B981' : '#EF4444'};
             color: white;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
           }
-          .txn-id {
-            font-family: 'Courier New', monospace;
-            font-weight: 900;
-            letter-spacing: 3px;
-            font-size: 32px;
-          }
+          .txn-id { font-family: 'Courier New', monospace; font-weight: 900; font-size: 11px; }
           @media print {
-            body {
-              padding: 10mm;
-              font-size: 28px;
-            }
-            .payment-details {
-              box-shadow: none;
-            }
-            .header, .receipt-info, .payment-details, .footer {
-              page-break-inside: avoid;
-            }
+            body { padding: 5mm; }
+            .payment-details { box-shadow: none; }
           }
         </style>
       </head>
@@ -826,7 +814,7 @@ export default function AdminMembers() {
 
         <div class="receipt-info">
           <div class="info-section">
-            <h3>Member Information</h3>
+            <h3>Member Info</h3>
             <div class="info-row">
               <span class="info-label">Member ID:</span>
               <span class="info-value">${member.member_number || 'N/A'}</span>
@@ -842,7 +830,7 @@ export default function AdminMembers() {
           </div>
 
           <div class="info-section">
-            <h3>Package Information</h3>
+            <h3>Package Info</h3>
             <div class="info-row">
               <span class="info-label">Package:</span>
               <span class="info-value">${pkg ? pkg.name : 'Not Assigned'}</span>
@@ -852,11 +840,11 @@ export default function AdminMembers() {
               <span class="info-value">${pkg ? pkg.duration_days + ' days' : 'N/A'}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Start Date:</span>
+              <span class="info-label">Start:</span>
               <span class="info-value">${packageStartDate ? new Date(packageStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not Set'}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Expiry Date:</span>
+              <span class="info-label">Expiry:</span>
               <span class="info-value">${packageExpiryDate ? new Date(packageExpiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Not Set'}</span>
             </div>
           </div>
@@ -869,7 +857,7 @@ export default function AdminMembers() {
             <span class="info-value txn-id">#${shortTxnId}</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Payment Status:</span>
+            <span class="info-label">Status:</span>
             <span class="status">${payment.status}</span>
           </div>
           <div class="info-row">
@@ -885,10 +873,10 @@ export default function AdminMembers() {
           <div class="amount">Rs. ${payment.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
 
-          <div class="footer">
-            <p style="font-size: 14px; margin-bottom: 8px; font-weight: 600;">Thank You</p>
-          </div>
-        </body>
+        <div class="footer">
+          <p style="font-weight: 700;">Thank You — GOFIT</p>
+        </div>
+      </body>
       </html>
     `
 
@@ -1075,28 +1063,42 @@ export default function AdminMembers() {
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     Profile Picture
                   </label>
-                  <div className="flex items-center gap-4">
-                    {profileImagePreview && (
-                      <img 
-                        src={profileImagePreview} 
-                        alt="Profile preview" 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-gold"
-                      />
-                    )}
-                    <label className="flex-1 cursor-pointer">
-                      <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-gold/50 transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm">{profileImage ? profileImage.name : 'Choose image'}</span>
+                  {/* Camera modal */}
+                  {showCamera && (
+                    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+                      <div className="bg-fitnix-dark-light border border-fitnix-gold/30 rounded-xl p-4 w-full max-w-sm">
+                        <h3 className="text-fitnix-gold font-bold mb-3 text-center">Take Photo</h3>
+                        <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg mb-3" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        <div className="flex gap-2">
+                          <button type="button" onClick={capturePhoto} className="flex-1 bg-fitnix-gold text-fitnix-dark font-bold py-2 rounded-lg">Capture</button>
+                          <button type="button" onClick={stopCamera} className="flex-1 bg-red-600/20 border border-red-500/30 text-red-400 font-bold py-2 rounded-lg">Cancel</button>
+                        </div>
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    {profileImagePreview && (
+                      <img src={profileImagePreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-gold flex-shrink-0" />
+                    )}
+                    <div className="flex-1 flex gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-gold/50 transition-colors text-sm">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {profileImage ? profileImage.name : 'Upload'}
+                        </div>
+                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                      </label>
+                      <button type="button" onClick={startCamera} className="fitnix-input px-3 flex items-center gap-1 hover:border-fitnix-gold/50 transition-colors text-sm whitespace-nowrap">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Camera
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs text-fitnix-off-white/50 mt-1">Max 5MB, JPG/PNG</p>
                 </div>
