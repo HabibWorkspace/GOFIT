@@ -28,6 +28,7 @@ export default function AdminSupplements() {
   const [showForm, setShowForm] = useState(false)
   const [showRestockModal, setShowRestockModal] = useState(false)
   const [showSupplierModal, setShowSupplierModal] = useState(false)
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
   const [editingSupplement, setEditingSupplement] = useState(null)
   const [restockingSupplement, setRestockingSupplement] = useState(null)
   
@@ -163,15 +164,21 @@ export default function AdminSupplements() {
   }
 
   const handleDelete = async (supplement) => {
-    if (!window.confirm(`Are you sure you want to delete ${supplement.name}?`)) return
-    
-    try {
-      await apiClient.delete(`/supplements/${supplement.id}`)
-      setSuccess('Supplement deleted successfully')
-      fetchSupplements()
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete supplement')
-    }
+    setConfirmModal({
+      show: true,
+      title: 'Delete Supplement',
+      message: `Are you sure you want to delete "${supplement.name}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmModal({ show: false, title: '', message: '', onConfirm: null })
+        try {
+          await apiClient.delete(`/supplements/${supplement.id}`)
+          setSuccess('Supplement deleted successfully')
+          fetchSupplements()
+        } catch (err) {
+          setError(err.response?.data?.error || 'Failed to delete supplement')
+        }
+      }
+    })
   }
 
   const handleEdit = (supplement) => {
@@ -296,6 +303,48 @@ export default function AdminSupplements() {
   return (
     <AdminLayout onLogout={handleLogout}>
       <div className="space-y-6 pb-8">
+
+        {/* ── Custom Confirm Modal ─────────────────────────────────────── */}
+        {confirmModal.show && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-fitnix-dark-light border-2 border-fitnix-gold/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+              {/* Icon */}
+              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-500/15 border border-red-500/30 mx-auto mb-4">
+                <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              {/* Title */}
+              <h3 className="text-lg font-bold text-fitnix-off-white text-center mb-2">
+                {confirmModal.title}
+              </h3>
+              {/* Message */}
+              <p className="text-fitnix-off-white/60 text-sm text-center mb-6">
+                {confirmModal.message}
+              </p>
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmModal({ show: false, title: '', message: '', onConfirm: null })}
+                  className="flex-1 px-4 py-2.5 bg-fitnix-dark border border-fitnix-gold/20 text-fitnix-off-white rounded-xl font-semibold hover:bg-fitnix-dark-light transition-all text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold transition-all text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ─────────────────────────────────────────────────────────────── */}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

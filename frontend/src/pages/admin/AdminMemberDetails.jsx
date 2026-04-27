@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
@@ -17,6 +17,10 @@ export default function AdminMemberDetails() {
   const [trainers, setTrainers] = useState([])
   const [profileImage, setProfileImage] = useState(null)
   const [profileImagePreview, setProfileImagePreview] = useState(null)
+  const [showCamera, setShowCamera] = useState(false)
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const streamRef = useRef(null)
   const [showSetPasswordModal, setShowSetPasswordModal] = useState(false)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [newPassword, setNewPassword] = useState('')
@@ -128,6 +132,41 @@ export default function AdminMemberDetails() {
     }
   }
 
+  const startCamera = async () => {
+    setShowCamera(true)
+    setTimeout(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        streamRef.current = stream
+        if (videoRef.current) videoRef.current.srcObject = stream
+      } catch (err) {
+        setError('Could not access camera. Please allow camera permission.')
+        setShowCamera(false)
+      }
+    }, 100)
+  }
+
+  const capturePhoto = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+    setProfileImagePreview(dataUrl)
+    setProfileImage({ name: 'camera-capture.jpg' })
+    stopCamera()
+  }
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    setShowCamera(false)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -219,48 +258,112 @@ export default function AdminMemberDetails() {
     }
   }
 
-  const handlePrintTransactionReceipt = (txn) => {
-    const iframe = document.createElement('iframe')
-    iframe.style.cssText = 'position:absolute;width:0;height:0;border:none'
-    document.body.appendChild(iframe)
-    const doc = iframe.contentWindow.document
-    const shortId = txn.id ? txn.id.slice(-8).toUpperCase() : 'N/A'
-    doc.open()
-    doc.write(`<!DOCTYPE html><html><head><title>Receipt</title>
-    <style>
-      @page { size: A5; margin: 1cm; }
-      body{font-family:'Segoe UI',sans-serif;max-width:148mm;margin:0 auto;padding:20px;background:#fff}
-      .header{text-align:center;border-bottom:4px solid #F2C228;padding-bottom:20px;margin-bottom:20px}
-      .logo{font-size:36px;font-weight:900;color:#F2C228;letter-spacing:3px}
-      .title{font-size:20px;font-weight:700;color:#333;margin:8px 0}
-      .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
-      .label{color:#666;font-weight:600}
-      .value{color:#333;font-weight:700}
-      .amount{font-size:32px;font-weight:900;color:#F2C228;text-align:center;padding:20px;background:#0B0B0B;border-radius:10px;margin:20px 0}
-      .footer{text-align:center;color:#999;font-size:12px;margin-top:20px}
-      .status{display:inline-block;padding:4px 12px;border-radius:20px;font-weight:700;font-size:13px;background:#d4edda;color:#155724}
-    </style></head><body>
-    <div class="header">
-      <div class="logo">GOFIT</div>
-      <div class="title">Payment Receipt</div>
-      <div style="color:#999;font-size:13px">${new Date().toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'})}</div>
-    </div>
-    <div class="row"><span class="label">Receipt No</span><span class="value">#${shortId}</span></div>
-    <div class="row"><span class="label">Member</span><span class="value">${member?.full_name || 'N/A'}</span></div>
-    <div class="row"><span class="label">Member ID</span><span class="value">${member?.member_number || 'N/A'}</span></div>
-    <div class="row"><span class="label">Type</span><span class="value">${txn.transaction_type || 'PAYMENT'}</span></div>
-    <div class="row"><span class="label">Due Date</span><span class="value">${txn.due_date ? new Date(txn.due_date).toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}) : 'N/A'}</span></div>
-    <div class="row"><span class="label">Paid Date</span><span class="value">${txn.paid_date ? new Date(txn.paid_date).toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}) : 'N/A'}</span></div>
-    <div class="row"><span class="label">Status</span><span class="value"><span class="status">${txn.status}</span></span></div>
-    <div class="amount">Rs. ${parseFloat(txn.amount).toLocaleString('en-PK')}</div>
-    <div class="footer">GOFIT Gym Management System &bull; Karachi, Pakistan<br>Thank You!</div>
-    </body></html>`)
-    doc.close()
-    iframe.onload = () => {
-      setTimeout(() => {
-        iframe.contentWindow.print()
-        setTimeout(() => document.body.removeChild(iframe), 1000)
-      }, 300)
+  const handlePrintTransactionReceipt = async (txn) => {
+    try {
+      // Fetch full member data for package/trainer info
+      const memberRes = await apiClient.get(`/admin/members/${id}`)
+      const m = memberRes.data
+
+      // Get package info
+      let pkgName = 'N/A', pkgStart = 'N/A', pkgExpiry = 'N/A'
+      if (m.current_package_id) {
+        try {
+          const pkgsRes = await apiClient.get('/packages')
+          const pkg = (pkgsRes.data.packages || []).find(p => p.id === m.current_package_id)
+          if (pkg) pkgName = pkg.name
+        } catch {}
+      }
+      if (m.package_start_date) pkgStart = new Date(m.package_start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      if (m.package_expiry_date) pkgExpiry = new Date(m.package_expiry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+      // Trainer info
+      let trainerName = 'N/A'
+      if (m.trainer_id) {
+        try {
+          const trainersRes = await apiClient.get('/admin/trainers')
+          const trainer = (trainersRes.data.trainers || []).find(t => t.id === m.trainer_id)
+          if (trainer) trainerName = trainer.full_name
+        } catch {}
+      }
+
+      const receiptNumber = `#${txn.id ? txn.id.slice(-8).toUpperCase() : Date.now().toString().slice(-8).toUpperCase()}`
+      const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()
+      const paidDate = txn.paid_date ? new Date(txn.paid_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'
+      const paymentMonth = txn.due_date ? new Date(txn.due_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'
+      const trainerFee = parseFloat(txn.trainer_fee || 0)
+      const packageFee = parseFloat(txn.package_price || txn.amount || 0)
+      const admissionFee = txn.transaction_type === 'ADMISSION' ? parseFloat(txn.amount) : 0
+      const totalAmount = parseFloat(txn.amount)
+
+      const receiptWin = window.open('', '_blank')
+      receiptWin.document.write(`<!DOCTYPE html><html><head><title>Payment Receipt</title>
+      <style>
+        @page { size: A5; margin: 8mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: white; color: #333; padding: 12px; font-size: 9px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .header-left { font-size: 8px; font-weight: bold; color: #666; letter-spacing: 1px; }
+        .header-right { text-align: right; }
+        .receipt-number { font-size: 9px; font-weight: bold; color: #000; }
+        .receipt-date { font-size: 8px; color: #666; }
+        .logo-section { text-align: center; margin: 8px 0; }
+        .logo { width: 160px; height: auto; }
+        .section { border: 1px solid #000; padding: 7px 10px; margin: 5px 0; position: relative; }
+        .section-title { position: absolute; top: -6px; left: 8px; background: white; padding: 0 5px; font-weight: bold; font-size: 7px; letter-spacing: 1px; color: #000; }
+        .info-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #ccc; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-weight: bold; color: #000; font-size: 8px; }
+        .info-value { color: #333; font-size: 8px; text-align: right; }
+        .total-section { border: 1px solid #000; padding: 8px; margin: 5px 0; text-align: center; background: #f9f9f9; }
+        .total-label { font-size: 8px; font-weight: bold; letter-spacing: 2px; margin-bottom: 3px; color: #000; }
+        .total-amount { font-size: 22px; font-weight: bold; color: #000; }
+        .notice-section { border: 1px solid #000; padding: 5px; margin: 5px 0; text-align: center; font-size: 7px; font-weight: bold; letter-spacing: 1px; }
+        .footer { text-align: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid #000; font-size: 9px; font-weight: bold; }
+        @media print { body { padding: 4px; } }
+      </style></head>
+      <body onload="window.print()">
+        <div class="header">
+          <div class="header-left">PAYMENT RECEIPT</div>
+          <div class="header-right">
+            <div class="receipt-number">RECEIPT ${receiptNumber}</div>
+            <div class="receipt-date">DATE: ${currentDate}</div>
+          </div>
+        </div>
+        <div class="logo-section">
+          <img src="${window.location.origin}/reciept.png" alt="GOFIT" class="logo" onerror="this.style.display='none'" />
+        </div>
+        <div class="section">
+          <div class="section-title">MEMBER INFORMATION</div>
+          <div class="info-row"><span class="info-label">MEMBER ID:</span><span class="info-value">${m.member_number || 'N/A'}</span></div>
+          <div class="info-row"><span class="info-label">NAME:</span><span class="info-value">${m.full_name || 'N/A'}</span></div>
+          <div class="info-row"><span class="info-label">PHONE:</span><span class="info-value">${m.phone || 'N/A'}</span></div>
+          <div class="info-row"><span class="info-label">ASSIGNED TRAINER:</span><span class="info-value">${trainerName}</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">PACKAGE INFORMATION</div>
+          <div class="info-row"><span class="info-label">PACKAGE:</span><span class="info-value">${pkgName}</span></div>
+          <div class="info-row"><span class="info-label">START DATE:</span><span class="info-value">${pkgStart}</span></div>
+          <div class="info-row"><span class="info-label">EXPIRY DATE:</span><span class="info-value">${pkgExpiry}</span></div>
+        </div>
+        <div class="section">
+          <div class="section-title">PAYMENT DETAILS</div>
+          <div class="info-row"><span class="info-label">PAYMENT MONTH:</span><span class="info-value">${paymentMonth}</span></div>
+          ${txn.transaction_type === 'ADMISSION' ? `<div class="info-row"><span class="info-label">ADMISSION FEE:</span><span class="info-value">Rs. ${admissionFee.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span></div>` : ''}
+          <div class="info-row"><span class="info-label">PACKAGE:</span><span class="info-value">Rs. ${packageFee.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span></div>
+          <div class="info-row"><span class="info-label">TRAINER FEE:</span><span class="info-value">Rs. ${trainerFee.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span></div>
+          <div class="info-row"><span class="info-label">PAID DATE:</span><span class="info-value">${paidDate}</span></div>
+        </div>
+        <div class="total-section">
+          <div class="total-label">TOTAL PAYABLE AMOUNT</div>
+          <div class="total-amount">Rs. ${totalAmount.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</div>
+        </div>
+        <div class="notice-section">FEES ONCE PAID IS NON-REFUNDABLE</div>
+        <div class="footer">Thank You</div>
+      </body></html>`)
+      receiptWin.document.close()
+    } catch (err) {
+      console.error('Receipt error:', err)
+      setError('Failed to generate receipt')
     }
   }
 
@@ -472,28 +575,42 @@ export default function AdminMemberDetails() {
                   <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
                     Profile Picture
                   </label>
-                  <div className="flex items-center gap-4">
-                    {profileImagePreview && (
-                      <img 
-                        src={profileImagePreview} 
-                        alt="Profile preview" 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-gold"
-                      />
-                    )}
-                    <label className="flex-1 cursor-pointer">
-                      <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-gold/50 transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm">{profileImage ? profileImage.name : 'Choose image'}</span>
+                  {/* Camera modal */}
+                  {showCamera && (
+                    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+                      <div className="bg-fitnix-dark-light border border-fitnix-gold/30 rounded-xl p-4 w-full max-w-sm">
+                        <h3 className="text-fitnix-gold font-bold mb-3 text-center">Take Photo</h3>
+                        <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg mb-3" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        <div className="flex gap-2">
+                          <button type="button" onClick={capturePhoto} className="flex-1 bg-fitnix-gold text-fitnix-dark font-bold py-2 rounded-lg">Capture</button>
+                          <button type="button" onClick={stopCamera} className="flex-1 bg-red-600/20 border border-red-500/30 text-red-400 font-bold py-2 rounded-lg">Cancel</button>
+                        </div>
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    {profileImagePreview && (
+                      <img src={profileImagePreview} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-fitnix-gold flex-shrink-0" />
+                    )}
+                    <div className="flex-1 flex gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <div className="fitnix-input flex items-center justify-center gap-2 hover:border-fitnix-gold/50 transition-colors text-sm">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {profileImage ? profileImage.name : 'Upload'}
+                        </div>
+                        <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                      </label>
+                      <button type="button" onClick={startCamera} className="fitnix-input px-3 flex items-center gap-1 hover:border-fitnix-gold/50 transition-colors text-sm whitespace-nowrap">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Camera
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs text-fitnix-off-white/50 mt-1">Max 5MB, JPG/PNG</p>
                 </div>
