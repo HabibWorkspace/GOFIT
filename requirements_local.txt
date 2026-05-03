@@ -1,0 +1,42 @@
+# Flask and Extensions
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-JWT-Extended>=4.6.0
+Flask-CORS==4.0.0
+Flask-SocketIO>=5.3.0
+Flask-Mail>=0.9.1
+
+# Database
+SQLAlchemy>=2.0.23
+alembic>=1.13.0
+
+# Production WSGI Server (Waitress for Windows)
+waitress>=2.1.2
+
+# Security and Authentication
+bcrypt==4.1.2
+pyotp==2.9.0
+itsdangerous>=2.1.2
+
+# QR Code Generation
+qrcode[pil]==7.4.2
+Pillow>=9.0.0
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+python-dateutil>=2.8.2
+
+# Excel Export
+openpyxl>=3.1.2
+
+# Real-time Notifications
+pusher>=3.3.2
+
+# Testing (optional)
+pytest>=7.4.2
+pytest-cov>=4.1.0
+hypothesis>=6.82.0
+
+# Job Scheduling
+APScheduler>=3.10.0

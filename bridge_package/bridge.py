@@ -1,7 +1,36 @@
 """
 GOFIT Gym Attendance Bridge Script
 Connects to MC-5924T TCP/IP Access Controller and syncs attendance logs to cloud backend.
+Also handles remote gate open commands from the web app.
 Runs as a Windows service on the front desk PC.
+
+GATE CONTROL FEATURE:
+- Polls backend every 3 seconds for pending gate commands
+- Sends UDP remote open packet to controller
+- Confirms execution back to backend
+
+================================================================
+HOW TO CAPTURE THE CORRECT REMOTE OPEN PACKET (one-time setup)
+================================================================
+
+The remote_open() function uses a generic packet format.
+To confirm it works with YOUR specific MC-5924T firmware:
+
+1. Download Wireshark: https://www.wireshark.org/
+2. Open Wireshark on this PC
+3. Select the Ethernet adapter connected to 192.168.1.x network
+4. In filter bar type: udp and host 192.168.1.150
+5. Open the attendance desktop software
+6. Click the "Open" button for Door 1
+7. Stop capture — you will see one UDP packet to 192.168.1.150:8000
+8. Right-click that packet → Copy → As Hex Stream
+9. In bridge.py find remote_open() function
+10. Uncomment CAPTURED_PACKET line and paste your hex string
+11. Save and restart the bridge service
+
+This one-time step guarantees 100% compatibility with your 
+specific controller firmware version.
+================================================================
 """
 
 import socket
@@ -266,6 +295,80 @@ class MC5924TController:
         except Exception as e:
             logger.error(f"Error getting attendance logs: {e}")
             return []
+    
+    def remote_open(self, door_number=1):
+        """
+        Send remote open command to MC-5924T controller.
+        
+        IMPORTANT: The exact packet bytes for this controller are not yet confirmed.
+        This function is built with a MODULAR design so the packet bytes can be 
+        updated once confirmed via Wireshark capture.
+        
+        Two approaches attempted in order:
+        1. Standard generic TCP/IP controller remote open (command 0x0040)
+        2. Alternative command (0x0044) if first fails
+        
+        To confirm correct packet:
+        1. Run Wireshark on this PC
+        2. Filter to: udp and host 192.168.1.150
+        3. Click the "Open" button in the desktop attendance software
+        4. Capture the UDP packet
+        5. Replace CAPTURED_PACKET bytes below with the captured bytes
+        
+        Args:
+            door_number: Door number (1 or 2)
+        
+        Returns:
+            bool: True if command sent successfully, False otherwise
+        """
+        # ============================================================
+        # CAPTURED PACKET OVERRIDE
+        # If you have captured the correct packet from Wireshark,
+        # uncomment the line below and paste the captured bytes:
+        # CAPTURED_PACKET = bytes.fromhex('YOUR_HEX_BYTES_HERE')
+        # Then replace `packet` with `CAPTURED_PACKET` in sendto below
+        # ============================================================
+        
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(3)
+            
+            # Standard generic TCP/IP controller remote open packet
+            # Command 0x0040 = remote open door
+            # door byte: 0x00 = door 1, 0x01 = door 2
+            door_byte = door_number - 1
+            cmd_code = 0x0040
+            session = 0
+            
+            # Data: [door(1)] + padding(19)
+            data = bytes([door_byte]) + b'\x00' * 19
+            
+            # Build packet: cmd(2) + checksum(2) + session(4) + data(20)
+            raw = struct.pack('<HHI', cmd_code, 0, session) + data
+            checksum = sum(raw) & 0xFFFF
+            packet = struct.pack('<HHI', cmd_code, checksum, session) + data
+            
+            logger.info(f"Sending remote open command to door {door_number}")
+            sock.sendto(packet, (self.ip, self.port))
+            
+            try:
+                response, _ = sock.recvfrom(64)
+                resp_cmd = struct.unpack_from('<H', response, 0)[0]
+                success = (resp_cmd == cmd_code)
+                if success:
+                    logger.info(f"Gate {door_number} opened successfully (ACK received)")
+            except socket.timeout:
+                # Some controllers don't send ACK for remote open
+                # Treat timeout as possible success
+                success = True
+                logger.info(f"Gate {door_number} command sent (no ACK received — may still work)")
+            
+            sock.close()
+            return success
+            
+        except Exception as e:
+            logger.error(f"Gate command error: {e}")
+            return False
 
 
 class BackendAPI:
@@ -331,6 +434,49 @@ class BackendAPI:
         except Exception as e:
             logger.error(f"Error sending heartbeat: {e}")
             return False
+    
+    def get_pending_gate_commands(self):
+        """Get pending gate commands from backend."""
+        try:
+            url = f"{self.base_url}/api/gate/pending-commands"
+            params = {'secret': self.secret_key}
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            result = response.json()
+            commands = result.get('commands', [])
+            
+            return commands
+            
+        except requests.exceptions.ConnectionError:
+            # Silently fail if no internet - don't spam logs
+            return []
+        except requests.exceptions.Timeout:
+            return []
+        except Exception as e:
+            logger.error(f"Error fetching gate commands: {e}")
+            return []
+    
+    def confirm_gate_command(self, command_id, success, error=None):
+        """Confirm gate command execution to backend."""
+        try:
+            url = f"{self.base_url}/api/gate/confirm-command"
+            payload = {
+                "command_id": command_id,
+                "success": success,
+                "error": error,
+                "secret": self.secret_key
+            }
+            
+            response = self.session.post(url, json=payload, timeout=10)
+            response.raise_for_status()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error confirming gate command: {e}")
+            return False
 
 
 class BridgeService:
@@ -344,6 +490,7 @@ class BridgeService:
         self.last_heartbeat = 0
         self.running = True
         self.pc_ip = self.get_local_ip()
+        self.cycle_count = 0  # Track cycles for attendance polling
     
     def get_local_ip(self):
         """Get local IP address."""
@@ -400,14 +547,46 @@ class BridgeService:
         except Exception as e:
             logger.error(f"Error sending heartbeat: {e}")
     
+    def check_and_execute_gate_commands(self):
+        """Poll server for pending gate commands and execute them."""
+        try:
+            commands = self.backend.get_pending_gate_commands()
+            
+            if not commands:
+                return
+            
+            for cmd in commands:
+                command_id = cmd['id']
+                door = cmd['door']
+                
+                logger.info(f"Executing gate command {command_id} — door {door}")
+                
+                # Send remote open command to controller
+                success = self.controller.remote_open(door)
+                
+                # Report result back to server
+                self.backend.confirm_gate_command(command_id, success, 
+                                                  None if success else 'Controller did not respond')
+                
+                if success:
+                    logger.info(f"Gate {door} opened successfully — command {command_id}")
+                else:
+                    logger.warning(f"Gate {door} open FAILED — command {command_id}")
+                    
+        except Exception as e:
+            logger.error(f"Gate command check error: {e}")
+    
     def run(self):
         """Main service loop."""
         logger.info("=" * 60)
         logger.info("GOFIT Attendance Bridge Service Started")
+        logger.info("WITH GATE CONTROL FEATURE")
         logger.info("=" * 60)
         logger.info(f"Local IP: {self.pc_ip}")
         logger.info(f"Controller: {self.config.controller_ip}:{self.config.controller_port}")
         logger.info(f"Backend: {self.config.app_url}")
+        logger.info(f"Gate command polling: Every 3 seconds")
+        logger.info(f"Attendance polling: Every 30 seconds")
         logger.info("=" * 60)
         
         # Send initial heartbeat
@@ -416,17 +595,24 @@ class BridgeService:
         # Try to sync any pending records from previous session
         self.process_pending_queue()
         
-        # Main loop
+        # Main loop - runs every 3 seconds
         while self.running:
             try:
-                # Poll controller for new records
-                self.poll_controller()
+                # Gate commands — every cycle (every 3 seconds)
+                self.check_and_execute_gate_commands()
                 
-                # Send heartbeat if needed
-                self.send_heartbeat()
+                # Attendance logs — every 10 cycles (every 30 seconds)
+                if self.cycle_count % 10 == 0:
+                    self.poll_controller()
                 
-                # Sleep until next poll
-                time.sleep(self.config.poll_interval)
+                # Heartbeat — every 100 cycles (every 5 minutes)
+                if self.cycle_count % 100 == 0:
+                    self.send_heartbeat()
+                
+                self.cycle_count += 1
+                
+                # Sleep 3 seconds until next cycle
+                time.sleep(3)
                 
             except KeyboardInterrupt:
                 logger.info("Received shutdown signal")

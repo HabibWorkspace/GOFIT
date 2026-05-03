@@ -1,0 +1,68 @@
+═══════════════════════════════════════════════════════════
+  FILES YOU NEED - SIMPLE LIST
+═══════════════════════════════════════════════════════════
+
+DOCUMENTATION (Read These):
+═══════════════════════════════════════════════════════════
+✓ README.md                    - Start here overview
+✓ SIMPLE_SETUP_GUIDE.md        - Main guide (FOLLOW THIS!)
+✓ CHECKLIST.txt                - Print and check off steps
+✓ FILES_YOU_NEED.txt           - This file
+
+CORE FILES (Copy to C:\gymapp\):
+═══════════════════════════════════════════════════════════
+✓ run.py                       - Production server
+✓ config_local.py              - Local configuration
+✓ requirements_local.txt       - Rename to: requirements.txt
+✓ .env.local                   - Rename to: .env
+✓ config_bridge_local.txt      - Rename to: config.txt
+✓ start_app.bat                - Manual start script
+
+DATA MIGRATION (Copy to C:\gymapp\):
+═══════════════════════════════════════════════════════════
+✓ export_data.py               - Export from PythonAnywhere
+✓ import_data.py               - Import to local
+✓ verify_data.py               - Verify data
+✓ regenerate_qr_codes.py       - Update QR codes
+✓ update_app_for_local.py      - Update imports
+
+SCRIPTS (Copy to C:\gymapp\scripts\):
+═══════════════════════════════════════════════════════════
+✓ scripts/install_services.bat - Install all services
+✓ scripts/check_all.bat        - Check status
+✓ scripts/restart_all.bat      - Restart services
+✓ scripts/power_settings.bat   - Configure PC
+
+YOUR EXISTING FILES (Already in your backend):
+═══════════════════════════════════════════════════════════
+✓ app.py
+✓ database.py
+✓ bridge.py
+✓ models/
+✓ routes/
+✓ middleware/
+✓ services/
+✓ utils/
+✓ static/
+✓ templates/ (if any)
+
+IGNORE THESE (Not needed):
+═══════════════════════════════════════════════════════════
+✗ config.py (old - use config_local.py instead)
+✗ requirements.txt (old - use requirements_local.txt)
+✗ Any PythonAnywhere-specific files
+
+═══════════════════════════════════════════════════════════
+
+QUICK SETUP:
+
+1. Copy your entire backend folder → C:\gymapp
+2. Add the migration files listed above
+3. Create folders: data, logs, backups, scripts
+4. Follow SIMPLE_SETUP_GUIDE.md
+
+═══════════════════════════════════════════════════════════
+
+THAT'S IT! Simple and clean.
+
+═══════════════════════════════════════════════════════════

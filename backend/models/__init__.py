@@ -12,6 +12,7 @@ from .supplier import Supplier
 from .supplement import Supplement
 from .supplement_stock import SupplementStock, MovementType
 from .supplement_sale import SupplementSale
+from .gate_command import GateCommand
 
 __all__ = [
     'User',
@@ -34,4 +35,5 @@ __all__ = [
     'SupplementStock',
     'MovementType',
     'SupplementSale',
+    'GateCommand',
 ]

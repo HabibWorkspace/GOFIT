@@ -720,3 +720,74 @@ def get_members_report():
     except Exception as e:
         current_app.logger.error(f"Error fetching members report: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+@super_admin_bp.route('/gate/recent-commands', methods=['GET'])
+@require_super_admin
+def get_gate_recent_commands():
+    """
+    Get recent gate commands for admin dashboard.
+    Proxy to gate blueprint for convenience.
+    """
+    from models import GateCommand
+    
+    try:
+        limit = min(request.args.get('limit', 20, type=int), 100)
+        
+        commands = GateCommand.query.order_by(
+            GateCommand.created_at.desc()
+        ).limit(limit).all()
+        
+        commands_list = []
+        for cmd in commands:
+            member = MemberProfile.query.get(cmd.member_id) if cmd.member_id else None
+            
+            commands_list.append({
+                **cmd.to_dict(),
+                'member_name': member.full_name if member else 'Manual Open',
+                'member_number': member.member_number if member else None
+            })
+        
+        return jsonify({'commands': commands_list}), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching recent gate commands: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@super_admin_bp.route('/gate/stats', methods=['GET'])
+@require_super_admin
+def get_gate_stats():
+    """
+    Get gate command statistics for admin dashboard.
+    """
+    from models import GateCommand
+    
+    try:
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        
+        # Get today's commands
+        today_commands = GateCommand.query.filter(
+            GateCommand.created_at >= today_start,
+            GateCommand.created_at < today_end
+        ).all()
+        
+        total = len(today_commands)
+        executed = sum(1 for cmd in today_commands if cmd.status == 'executed')
+        failed = sum(1 for cmd in today_commands if cmd.status == 'failed')
+        expired = sum(1 for cmd in today_commands if cmd.status == 'expired')
+        
+        success_rate = (executed / total * 100) if total > 0 else 0
+        
+        return jsonify({
+            'total_commands': total,
+            'executed': executed,
+            'failed': failed,
+            'expired': expired,
+            'success_rate': round(success_rate, 1)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching gate stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500

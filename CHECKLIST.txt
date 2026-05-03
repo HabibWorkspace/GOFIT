@@ -1,0 +1,124 @@
+═══════════════════════════════════════════════════════════
+  GYM MANAGEMENT SYSTEM - MIGRATION CHECKLIST
+═══════════════════════════════════════════════════════════
+
+Print this and check off each step as you complete it.
+
+═══════════════════════════════════════════════════════════
+
+STEP 1: Install Python
+[ ] Downloaded Python 3.11
+[ ] Installed with "Add to PATH" checked
+[ ] Tested: python --version
+
+STEP 2: Download Tools
+[ ] Downloaded NSSM → C:\nssm\nssm.exe
+[ ] Downloaded Cloudflared → C:\cloudflared\cloudflared.exe
+[ ] Downloaded and installed AnyDesk
+[ ] Noted AnyDesk ID: _______________
+
+STEP 3: Copy Backend Folder
+[ ] Copied entire backend to C:\gymapp
+
+STEP 4: Add Migration Files
+[ ] Copied run.py
+[ ] Copied config_local.py
+[ ] Copied requirements_local.txt → requirements.txt
+[ ] Copied .env.local → .env
+[ ] Copied config_bridge_local.txt → config.txt
+[ ] Copied start_app.bat
+[ ] Copied export_data.py
+[ ] Copied import_data.py
+[ ] Copied verify_data.py
+[ ] Copied update_app_for_local.py
+[ ] Copied all scripts/*.bat to C:\gymapp\scripts\
+
+STEP 5: Create Folders
+[ ] Created C:\gymapp\data
+[ ] Created C:\gymapp\logs
+[ ] Created C:\gymapp\backups
+
+STEP 6: Install Python Packages
+[ ] Created virtual environment
+[ ] Installed all packages from requirements.txt
+
+STEP 7: Configure Secrets
+[ ] Generated 3 secret keys
+[ ] Updated .env with all keys
+[ ] Updated config.txt with bridge secret
+[ ] Ran update_app_for_local.py
+
+STEP 8: Export Data
+[ ] Ran export_data.py on PythonAnywhere
+[ ] Downloaded gym_data_export.json
+[ ] Saved to C:\gymapp\gym_data_export.json
+
+STEP 9: Import Data
+[ ] Ran import_data.py
+[ ] Ran verify_data.py
+[ ] All records imported correctly
+
+STEP 10: Test Flask App
+[ ] Ran start_app.bat
+[ ] Visited http://localhost:5000/api/health
+[ ] Got "healthy" response
+
+STEP 11: Set Up Cloudflare Tunnel
+[ ] Created Cloudflare account
+[ ] Ran: cloudflared tunnel login
+[ ] Ran: cloudflared tunnel create gym-tunnel
+[ ] Noted Tunnel ID: _______________
+[ ] Created config.yml
+[ ] Ran: cloudflared tunnel route dns
+[ ] Tested tunnel - got public URL
+[ ] Noted Public URL: _______________
+[ ] Updated .env with PUBLIC_URL
+
+STEP 12: Configure Power Settings
+[ ] Ran power_settings.bat as admin
+
+STEP 13: Install Services
+[ ] Ran install_services.bat as admin
+[ ] All services installed
+
+STEP 14: Verify Everything
+[ ] Ran check_all.bat
+[ ] All services show "RUNNING"
+[ ] Local health check works
+[ ] Public URL works
+[ ] Login works
+[ ] QR scan → gate opens instantly
+[ ] Attendance syncing
+[ ] No errors in logs
+
+STEP 15: Update QR Codes
+[ ] Ran regenerate_qr_codes.py
+
+═══════════════════════════════════════════════════════════
+
+FINAL CHECKS:
+
+[ ] Services auto-start after reboot (test by rebooting)
+[ ] Gate opens instantly on QR scan
+[ ] All features working
+[ ] Staff trained
+[ ] Backups configured
+[ ] PythonAnywhere deactivated (after 48 hours of testing)
+
+═══════════════════════════════════════════════════════════
+
+IMPORTANT INFO TO SAVE:
+
+AnyDesk ID: _______________
+Tunnel URL: _______________
+SECRET_KEY: _______________ (keep secure!)
+BRIDGE_SECRET_KEY: _______________ (keep secure!)
+
+═══════════════════════════════════════════════════════════
+
+SETUP COMPLETE! ✓
+
+Date completed: _______________
+Completed by: _______________
+
+═══════════════════════════════════════════════════════════

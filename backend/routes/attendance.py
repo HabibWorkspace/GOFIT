@@ -1017,9 +1017,21 @@ def check_in_session():
             method='session_id'
         )
         db.session.add(attendance)
+        
+        # Create gate command for automatic gate opening
+        from models import GateCommand
+        gate_command = GateCommand(
+            member_id=member.id,
+            door=1,  # Default door 1
+            status='pending',
+            triggered_by='qr'
+        )
+        db.session.add(gate_command)
+        
         db.session.commit()
         
         current_app.logger.info(f"Attendance record created for member: {member.full_name}")
+        current_app.logger.info(f"Gate command created: {gate_command.id} for door 1")
         
         # Send Pusher notification
         try:
@@ -1057,7 +1069,8 @@ def check_in_session():
             'message': f'Welcome {member.full_name.split()[0]}! Check-in successful',
             'time': now.isoformat() + 'Z',
             'status': status,
-            'days_info': days_info
+            'days_info': days_info,
+            'gate_command_id': gate_command.id  # Return gate command ID for status polling
         }), 200
         
     except Exception as e:
