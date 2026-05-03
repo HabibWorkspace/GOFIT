@@ -12,11 +12,30 @@ import json
 import sys
 import os
 from datetime import datetime
+from pathlib import Path
 
 # Add backend directory to Python path
-backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend')
+script_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.join(script_dir, 'backend')
 if os.path.exists(backend_dir):
     sys.path.insert(0, backend_dir)
+
+# Load environment variables from backend/.env.production
+from dotenv import load_dotenv
+env_path = Path(backend_dir) / '.env.production'
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+    print(f"✓ Loaded environment from: {env_path}")
+else:
+    env_path = Path(backend_dir) / '.env'
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+        print(f"✓ Loaded environment from: {env_path}")
+    else:
+        print("⚠ No .env file found, using defaults")
+
+# Set production environment
+os.environ['FLASK_ENV'] = 'production'
 
 from app import create_app
 from database import db
@@ -60,6 +79,32 @@ def main():
     print("=" * 60)
     
     app, _ = create_app()
+    
+    # Debug: Print database URI
+    print(f"\n📁 Database URI: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
+    
+    # Extract database file path
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if db_uri.startswith('sqlite:///'):
+        db_path = db_uri.replace('sqlite:///', '')
+        print(f"📁 Database file: {db_path}")
+        print(f"📁 File exists: {os.path.exists(db_path)}")
+        
+        # Check parent directory
+        db_dir = os.path.dirname(db_path)
+        print(f"📁 Database directory: {db_dir}")
+        print(f"📁 Directory exists: {os.path.exists(db_dir)}")
+        
+        if not os.path.exists(db_path):
+            print(f"\n❌ ERROR: Database file not found!")
+            print(f"   Expected location: {db_path}")
+            print(f"\n💡 Possible solutions:")
+            print(f"   1. Check if the database file exists in a different location")
+            print(f"   2. Update DATABASE_URL in backend/.env.production")
+            print(f"   3. Make sure you're running this on PythonAnywhere where the database exists")
+            return
+    
+    print("\n" + "=" * 60)
     
     with app.app_context():
         export_data = {
