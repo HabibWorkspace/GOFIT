@@ -68,6 +68,7 @@ def create_app():
     from routes.super_admin import super_admin_bp
     from routes.trainer_commission import trainer_commission_bp
     from routes.supplements import supplements_bp
+    from routes.gate import gate_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_complete_bp, url_prefix='/api/admin')
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(super_admin_bp, url_prefix='/api/super-admin')
     app.register_blueprint(trainer_commission_bp, url_prefix='/api')
     app.register_blueprint(supplements_bp, url_prefix='/api/supplements')
+    app.register_blueprint(gate_bp, url_prefix='/api/gate')
 
     # ── Serve React frontend ──────────────────────────────────────────────────
     dist_dir = os.path.join(THIS_DIR, '..', 'frontend', 'dist')
