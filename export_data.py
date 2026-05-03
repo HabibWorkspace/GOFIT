@@ -9,7 +9,15 @@ Output:
     gym_data_export.json - Contains all database records
 """
 import json
+import sys
+import os
 from datetime import datetime
+
+# Add backend directory to Python path
+backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend')
+if os.path.exists(backend_dir):
+    sys.path.insert(0, backend_dir)
+
 from app import create_app
 from database import db
 from models import (
