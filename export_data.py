@@ -47,8 +47,11 @@ from models import (
 )
 
 def serialize_datetime(obj):
-    """Convert datetime to ISO format string."""
+    """Convert datetime and date to ISO format string."""
+    from datetime import date
     if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, date):
         return obj.isoformat()
     return obj
 
@@ -58,11 +61,14 @@ def export_table(model, name):
     records = model.query.all()
     data = []
     
+    from datetime import date
     for record in records:
         record_dict = {}
         for column in model.__table__.columns:
             value = getattr(record, column.name)
             if isinstance(value, datetime):
+                value = value.isoformat()
+            elif isinstance(value, date):
                 value = value.isoformat()
             elif hasattr(value, 'value'):  # Enum
                 value = value.value
@@ -108,7 +114,7 @@ def main():
     
     with app.app_context():
         export_data = {
-            'export_date': datetime.utcnow().isoformat(),
+            'export_date': datetime.now().isoformat(),
             'tables': {}
         }
         
