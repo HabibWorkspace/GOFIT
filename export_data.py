@@ -62,6 +62,8 @@ def export_table(model, name):
     data = []
     
     from datetime import date
+    from decimal import Decimal
+    
     for record in records:
         record_dict = {}
         for column in model.__table__.columns:
@@ -70,6 +72,8 @@ def export_table(model, name):
                 value = value.isoformat()
             elif isinstance(value, date):
                 value = value.isoformat()
+            elif isinstance(value, Decimal):
+                value = float(value)
             elif hasattr(value, 'value'):  # Enum
                 value = value.value
             record_dict[column.name] = value
