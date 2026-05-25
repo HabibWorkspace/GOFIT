@@ -894,47 +894,58 @@ def update_member(member_id):
             member.profile_picture = data['profile_picture']
         
         # Handle package assignment (accept both package_id and current_package_id)
+        package_id_changed = False
+        new_package_id = None
+        
         if 'package_id' in data:
             new_package_id = data['package_id'] if data['package_id'] else None
-            # If package changed, recalculate dates
-            if new_package_id != member.current_package_id and new_package_id:
-                package = Package.query.get(new_package_id)
-                if package:
-                    # Only auto-set dates if not provided
-                    if 'package_start_date' not in data or not data['package_start_date']:
-                        member.package_start_date = datetime.utcnow()
-                    if 'package_expiry_date' not in data or not data['package_expiry_date']:
-                        start_date = member.package_start_date or datetime.utcnow()
-                        member.package_expiry_date = start_date + timedelta(days=package.duration_days)
+            package_id_changed = new_package_id != member.current_package_id
             member.current_package_id = new_package_id
         elif 'current_package_id' in data:
             new_package_id = data['current_package_id'] if data['current_package_id'] else None
-            # If package changed, recalculate dates
-            if new_package_id != member.current_package_id and new_package_id:
-                package = Package.query.get(new_package_id)
-                if package:
-                    # Only auto-set dates if not provided
-                    if 'package_start_date' not in data or not data['package_start_date']:
-                        member.package_start_date = datetime.utcnow()
-                    if 'package_expiry_date' not in data or not data['package_expiry_date']:
-                        start_date = member.package_start_date or datetime.utcnow()
-                        member.package_expiry_date = start_date + timedelta(days=package.duration_days)
+            package_id_changed = new_package_id != member.current_package_id
             member.current_package_id = new_package_id
         
-        # Handle package dates
-        if 'package_start_date' in data:
+        # Handle package dates FIRST (before auto-calculation)
+        start_date_provided = False
+        expiry_date_provided = False
+        
+        if 'package_start_date' in data and data['package_start_date']:
             try:
                 from datetime import datetime as dt
-                member.package_start_date = dt.fromisoformat(data['package_start_date'].replace('Z', '+00:00')) if data['package_start_date'] else None
-            except:
+                member.package_start_date = dt.fromisoformat(data['package_start_date'].replace('Z', '+00:00'))
+                start_date_provided = True
+                print(f"[DATE DEBUG] Start date parsed from frontend: {member.package_start_date}")
+            except Exception as e:
+                print(f"[DATE DEBUG] Failed to parse start date: {e}")
                 pass
         
-        if 'package_expiry_date' in data:
+        if 'package_expiry_date' in data and data['package_expiry_date']:
             try:
                 from datetime import datetime as dt
-                member.package_expiry_date = dt.fromisoformat(data['package_expiry_date'].replace('Z', '+00:00')) if data['package_expiry_date'] else None
-            except:
+                member.package_expiry_date = dt.fromisoformat(data['package_expiry_date'].replace('Z', '+00:00'))
+                expiry_date_provided = True
+                print(f"[DATE DEBUG] Expiry date parsed from frontend: {member.package_expiry_date}")
+            except Exception as e:
+                print(f"[DATE DEBUG] Failed to parse expiry date: {e}")
                 pass
+        
+        # Auto-calculate dates if package changed and dates not provided
+        if package_id_changed and new_package_id:
+            package = Package.query.get(new_package_id)
+            if package:
+                print(f"[DATE DEBUG] Package changed to: {package.name}")
+                
+                # Auto-set start date if not provided
+                if not start_date_provided:
+                    member.package_start_date = datetime.utcnow()
+                    print(f"[DATE DEBUG] Auto-set start date: {member.package_start_date}")
+                
+                # Auto-calculate expiry date if not provided
+                if not expiry_date_provided:
+                    start_date = member.package_start_date or datetime.utcnow()
+                    member.package_expiry_date = start_date + timedelta(days=package.duration_days)
+                    print(f"[DATE DEBUG] Auto-calculated expiry date: {member.package_expiry_date}")
         
         # Handle trainer assignment
         if 'trainer_id' in data:
@@ -997,15 +1008,23 @@ def update_member(member_id):
         new_package_id = member.current_package_id
         package_changed = new_package_id and new_package_id != old_package_id
 
+        print(f"[TRANSACTION DEBUG] Package changed: {package_changed}")
+        print(f"[TRANSACTION DEBUG] Old package: {old_package_id}, New package: {new_package_id}")
+        print(f"[TRANSACTION DEBUG] Package expiry date: {member.package_expiry_date}")
+
         if package_changed and member.package_expiry_date:
             package = Package.query.get(new_package_id)
             if package:
+                print(f"[TRANSACTION DEBUG] Package found: {package.name}, Price: {package.price}")
+                
                 # Check no pending transaction already exists for this expiry period
                 existing = Transaction.query.filter(
                     Transaction.member_id == member.id,
                     Transaction.status == TransactionStatus.PENDING,
                     Transaction.due_date == member.package_expiry_date
                 ).first()
+
+                print(f"[TRANSACTION DEBUG] Existing transaction: {existing}")
 
                 if not existing:
                     trainer_fee = 0
@@ -1015,7 +1034,32 @@ def update_member(member_id):
                             trainer_fee = float(trainer.salary_rate)
 
                     package_price = float(package.price) if package.price else 0
-                    total_amount = package_price + trainer_fee
+                    
+                    # ── Extract discount from request data ──────
+                    discount_amount = float(data.get('discount_amount', 0) or 0)
+                    discount_type = data.get('discount_type', 'fixed')
+                    
+                    # Calculate discount based on type
+                    original_total = package_price + trainer_fee
+                    actual_discount = 0
+                    
+                    if discount_amount > 0:
+                        if discount_type == 'percentage':
+                            # Calculate percentage discount
+                            actual_discount = (original_total * discount_amount) / 100
+                        else:
+                            # Fixed amount discount
+                            actual_discount = discount_amount
+                        
+                        # Validate discount doesn't exceed total
+                        if actual_discount > original_total:
+                            actual_discount = original_total
+                    
+                    # Calculate final amount after discount
+                    total_amount = original_total - actual_discount
+
+                    print(f"[TRANSACTION DEBUG] Creating transaction - Package: {package_price}, Trainer: {trainer_fee}, Original Total: {original_total}")
+                    print(f"[TRANSACTION DEBUG] Discount: {actual_discount} ({discount_type}), Final Amount: {total_amount}")
 
                     new_txn = Transaction(
                         member_id=member.id,
@@ -1025,11 +1069,14 @@ def update_member(member_id):
                         due_date=member.package_expiry_date,  # due = expiry date
                         package_price=package_price,
                         trainer_fee=trainer_fee,
-                        discount_amount=0,
-                        discount_type='fixed',
+                        discount_amount=actual_discount,
+                        discount_type=discount_type,
                         created_at=datetime.utcnow()
                     )
                     db.session.add(new_txn)
+                    
+                    print(f"[TRANSACTION DEBUG] Transaction created successfully: {new_txn.id}")
+                    
                     log_action(
                         action='created transaction',
                         target_type='Transaction',
@@ -1038,10 +1085,19 @@ def update_member(member_id):
                             'member_number': member.member_number,
                             'member_name': member.full_name,
                             'amount': total_amount,
+                            'original_amount': original_total,
+                            'discount_amount': actual_discount,
+                            'discount_type': discount_type,
                             'transaction_type': 'PAYMENT',
                             'due_date': member.package_expiry_date.isoformat(),
                         }
                     )
+                else:
+                    print(f"[TRANSACTION DEBUG] Transaction already exists, skipping creation")
+            else:
+                print(f"[TRANSACTION DEBUG] Package not found in database")
+        else:
+            print(f"[TRANSACTION DEBUG] Conditions not met for transaction creation")
         # ─────────────────────────────────────────────────────────────────────────
 
         db.session.commit()
@@ -2519,6 +2575,83 @@ def create_member_transaction(member_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+@admin_complete_bp.route('/finance/transactions/<transaction_id>/update-discount', methods=['PUT'])
+@require_admin
+def update_transaction_discount(transaction_id):
+    """Update discount on an existing transaction."""
+    try:
+        transaction = Transaction.query.get(transaction_id)
+        if not transaction:
+            return jsonify({'error': 'Transaction not found'}), 404
+        
+        # Get member info for logging
+        member = MemberProfile.query.get(transaction.member_id)
+        if not member:
+            return jsonify({'error': 'Member not found'}), 404
+        
+        data = request.get_json()
+        discount_amount = float(data.get('discount_amount', 0) or 0)
+        discount_type = data.get('discount_type', 'fixed')
+        
+        # Store old values for logging
+        old_discount = float(transaction.discount_amount or 0)
+        old_amount = float(transaction.amount)
+        
+        # Calculate original total (before any discount)
+        original_total = old_amount + old_discount
+        
+        # Calculate new discount based on type
+        actual_discount = 0
+        if discount_amount > 0:
+            if discount_type == 'percentage':
+                # Calculate percentage discount
+                actual_discount = (original_total * discount_amount) / 100
+            else:
+                # Fixed amount discount
+                actual_discount = discount_amount
+            
+            # Validate discount doesn't exceed total
+            if actual_discount > original_total:
+                return jsonify({'error': 'Discount cannot exceed the original amount'}), 400
+        
+        # Calculate new final amount
+        new_amount = original_total - actual_discount
+        
+        # Update transaction
+        transaction.discount_amount = actual_discount
+        transaction.discount_type = discount_type
+        transaction.amount = new_amount
+        
+        # Log the action
+        log_action(
+            action='updated transaction discount',
+            target_type='Transaction',
+            target_id=transaction.id,
+            details={
+                'member_number': member.member_number,
+                'member_name': member.full_name,
+                'original_total': original_total,
+                'old_discount': old_discount,
+                'new_discount': actual_discount,
+                'discount_type': discount_type,
+                'old_amount': old_amount,
+                'new_amount': new_amount,
+                'transaction_type': transaction.transaction_type.value,
+                'due_date': transaction.due_date.isoformat() if transaction.due_date else None
+            }
+        )
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Transaction discount updated successfully',
+            'transaction': transaction.to_dict()
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': 'Invalid discount amount'}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

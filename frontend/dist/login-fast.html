@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>GOFIT - Login</title>
+    <link rel="icon" type="image/png" href="/logo-optimized.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Blobs */
+        .blob-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #F2C228, #F5D563);
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            width: 350px;
+            height: 350px;
+            background: linear-gradient(135deg, #C29A1F, #F2C228);
+            bottom: -100px;
+            right: -100px;
+            animation-delay: 5s;
+            animation-duration: 25s;
+        }
+
+        .blob-3 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #F5D563, #F8E89B);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 10s;
+            animation-duration: 30s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(50px, -50px) scale(1.1);
+            }
+            50% {
+                transform: translate(-30px, 30px) scale(0.9);
+            }
+            75% {
+                transform: translate(40px, 20px) scale(1.05);
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 28rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            width: 8rem;
+            height: 8rem;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(242, 194, 40, 0.3));
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #F2C228, #F5D563, #F2C228);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInDown 0.8s ease-out 0.2s both, shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            animation: fadeInDown 0.8s ease-out 0.4s both;
+        }
+
+        .card {
+            background: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(242, 194, 40, 0.2);
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(242, 194, 40, 0.1);
+            padding: 2rem;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .error-message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(220, 38, 38, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .label {
+            display: block;
+            color: #d1d5db;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            border-radius: 0.75rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input::placeholder {
+            color: #6b7280;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #F2C228;
+            background: rgba(17, 24, 39, 0.8);
+            box-shadow: 0 0 0 3px rgba(242, 194, 40, 0.15), 0 0 20px rgba(242, 194, 40, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #F2C228;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #F2C228, #F5D563);
+            color: #0a0a0a;
+            font-weight: 700;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(242, 194, 40, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .submit-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #F5D563, #F8E89B);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(242, 194, 40, 0.4);
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(242, 194, 40, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .footer {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 1.5rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #111827;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .title {
+                font-size: 2.5rem;
+            }
+
+            .logo {
+                width: 6rem;
+                height: 6rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Blobs -->
+    <div class="blob-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-container">
+            <img src="/logo-optimized.png" alt="GOFIT" class="logo">
+        </div>
+
+        <!-- Title -->
+        <h1 class="title">GOFIT</h1>
+        <p class="subtitle">ACTIVE LIFESTYLE</p>
+
+        <!-- Login Card -->
+        <div class="card">
+            <h2 class="card-title">Welcome Back</h2>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="error-message"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="label" for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        class="input"
+                        placeholder="Enter username"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="label" for="password">Password</label>
+                    <div class="input-wrapper">
+                        <input
+                            type="password"
+                            id="password"
+                            class="input"
+                            placeholder="Enter password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            👁️‍🗨️
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Login
+                </button>
+            </form>
+        </div>
+
+        <p class="footer">© 2026 GOFIT. All rights reserved.</p>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'https://web.go-fit.me/api';
+        const TIMEOUT = 10000;
+
+        // DOM Elements
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Password Toggle
+        togglePasswordBtn.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePasswordBtn.textContent = type === 'password' ? '👁️‍🗨️' : '👁️';
+        });
+
+        // Show Error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        // Hide Error
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        // Set Loading State
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            if (loading) {
+                submitBtn.innerHTML = '<span class="spinner"></span>Logging in...';
+            } else {
+                submitBtn.textContent = 'Login';
+            }
+        }
+
+        // Fetch with Timeout
+        function fetchWithTimeout(url, options, timeout = TIMEOUT) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Request timeout')), timeout)
+                )
+            ]);
+        }
+
+        // Handle Login
+        async function handleLogin(e) {
+            e.preventDefault();
+            hideError();
+            setLoading(true);
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || errorData.message || 'Login failed');
+                }
+
+                const data = await response.json();
+                const { access_token, user } = data;
+
+                console.log('✅ Login successful:', { access_token: access_token?.substring(0, 20) + '...', user });
+
+                // Store credentials
+                localStorage.setItem('token', access_token);
+                localStorage.setItem('user', JSON.stringify(user));
+
+                console.log('💾 Stored in localStorage:', {
+                    token: localStorage.getItem('token')?.substring(0, 20) + '...',
+                    user: localStorage.getItem('user')
+                });
+
+                // Verify storage immediately
+                const verifyToken = localStorage.getItem('token');
+                const verifyUser = localStorage.getItem('user');
+                console.log('✅ Verification:', { hasToken: !!verifyToken, hasUser: !!verifyUser });
+
+                // Redirect based on role
+                const userRole = user.role?.toLowerCase();
+                let redirectUrl = '/login'; // Default fallback
+
+                if (userRole === 'super_admin') {
+                    redirectUrl = '/super-admin';
+                } else if (userRole === 'admin' || userRole === 'receptionist') {
+                    redirectUrl = '/admin';
+                } else if (userRole === 'scanner') {
+                    redirectUrl = '/scanner';
+                } else if (userRole === 'trainer') {
+                    redirectUrl = '/trainer';
+                } else if (userRole === 'member') {
+                    redirectUrl = '/member/profile';
+                }
+
+                console.log('🔄 Redirecting to:', redirectUrl);
+
+                // Small delay to ensure localStorage is written
+                setTimeout(() => {
+                    console.log('🚀 Executing redirect...');
+                    window.location.href = redirectUrl;
+                }, 100);
+
+            } catch (error) {
+                setLoading(false);
+                
+                if (error.message === 'Request timeout') {
+                    showError('Connection timeout. Please check your internet connection.');
+                } else if (error.message === 'Failed to fetch') {
+                    showError('Unable to connect to server. Please try again.');
+                } else {
+                    showError(error.message || 'Login failed. Please try again.');
+                }
+            }
+        }
+
+        // Form Submit
+        loginForm.addEventListener('submit', handleLogin);
+
+        // Auto-focus username on load
+        usernameInput.focus();
+    </script>
+</body>
+</html>

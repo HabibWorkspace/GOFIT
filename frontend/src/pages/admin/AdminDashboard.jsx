@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import NotificationPopup from '../../components/NotificationPopup'
-import Pusher from 'pusher-js'
 
 export default function AdminDashboard() {
   const [metrics, setMetrics] = useState(null)
@@ -16,59 +15,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchMetrics()
     fetchRecentActivities()
-    
-    // Initialize Pusher for real-time notifications
-    let pusher = null
-    let channel = null
-    
-    try {
-      // Get Pusher credentials from environment variables
-      const pusherKey = import.meta.env.VITE_PUSHER_KEY
-      const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'
-      
-      if (pusherKey) {
-        // Initialize Pusher client
-        pusher = new Pusher(pusherKey, {
-          cluster: pusherCluster,
-          encrypted: true
-        })
-        
-        // Subscribe to admin notifications channel
-        channel = pusher.subscribe('admin-notifications')
-        
-        // Listen for member check-in events
-        channel.bind('member-checkin', (data) => {
-          console.log('Member check-in notification received:', data)
-          
-          // Show notification popup
-          setNotification(data)
-          
-          // Refresh metrics to update counts
-          fetchMetrics()
-          
-          // Play notification sound (optional)
-          try {
-            const audio = new Audio('/notification.mp3')
-            audio.volume = 0.5
-            audio.play().catch(err => console.log('Audio play failed:', err))
-          } catch (err) {
-            console.log('Audio not available:', err)
-          }
-        })
-        
-        // Listen for overdue payment alerts
-        channel.bind('overdue-payment', (data) => {
-          console.log('Overdue payment alert received:', data)
-          // You can add a different notification style for overdue payments
-        })
-        
-        console.log('Pusher connected successfully')
-      } else {
-        console.warn('Pusher key not configured. Real-time notifications disabled.')
-      }
-    } catch (err) {
-      console.error('Failed to initialize Pusher:', err)
-    }
     
     // Auto-refresh metrics every 10 seconds to update overdue payments
     const metricsInterval = setInterval(() => {
@@ -83,15 +29,6 @@ export default function AdminDashboard() {
     return () => {
       clearInterval(metricsInterval)
       clearInterval(activitiesInterval)
-      
-      // Cleanup Pusher connection
-      if (channel) {
-        channel.unbind_all()
-        channel.unsubscribe()
-      }
-      if (pusher) {
-        pusher.disconnect()
-      }
     }
   }, [])
 

@@ -1,108 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import NotificationPopup from '../NotificationPopup'
-import Pusher from 'pusher-js'
+import BirthdayNotification from '../BirthdayNotification'
+import { useWebSocket } from '../../hooks/useWebSocket'
 
 export default function AdminLayout({ children, onLogout }) {
   const location = useLocation()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [notification, setNotification] = useState(null)
+  const [birthdayMembers, setBirthdayMembers] = useState(null)
 
-  // Initialize Pusher for real-time notifications
-  useEffect(() => {
-    let pusher = null
-    let channel = null
-    let isCleaningUp = false
-    let isConnected = false
-    
-    try {
-      const pusherKey = import.meta.env.VITE_PUSHER_KEY
-      const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'
+  // Initialize WebSocket for real-time notifications
+  const { isConnected } = useWebSocket({
+    onMemberCheckin: (data) => {
+      console.log('AdminLayout - Member check-in notification:', data)
       
-      if (pusherKey) {
-        // Configure Pusher with minimal config to avoid errors
-        pusher = new Pusher(pusherKey, {
-          cluster: pusherCluster,
-          forceTLS: true
-        })
-        
-        // Handle connection state changes
-        pusher.connection.bind('state_change', (states) => {
-          if (!isCleaningUp) {
-            console.log('Pusher state changed:', states.current)
-            isConnected = states.current === 'connected'
-          }
-        })
-        
-        // Handle connection errors (suppress during cleanup)
-        pusher.connection.bind('error', (err) => {
-          if (!isCleaningUp) {
-            console.error('Pusher connection error:', err)
-          }
-        })
-        
-        // Subscribe to channel
-        channel = pusher.subscribe('admin-notifications')
-        
-        // Listen for member check-in events
-        channel.bind('member-checkin', (data) => {
-          if (!isCleaningUp) {
-            console.log('AdminLayout - Member check-in notification:', data)
-            
-            // Show notification popup
-            setNotification(data)
-            
-            // Play notification sound (optional)
-            try {
-              const audio = new Audio('/notification.mp3')
-              audio.volume = 0.5
-              audio.play().catch(() => {}) // Silently ignore audio errors
-            } catch (err) {
-              // Silently ignore audio errors
-            }
-          }
-        })
-        
-        console.log('AdminLayout - Pusher initialized successfully')
-      } else {
-        console.warn('Pusher key not configured. Real-time notifications disabled.')
-      }
-    } catch (err) {
-      if (!isCleaningUp) {
-        console.error('Failed to initialize Pusher:', err)
-      }
-    }
-    
-    return () => {
-      // Set cleanup flag to prevent state updates and suppress errors during cleanup
-      isCleaningUp = true
+      // Show notification popup
+      setNotification(data)
       
-      // Cleanup Pusher connection gracefully
-      if (channel) {
-        try {
-          channel.unbind_all()
-          // Only unsubscribe if pusher is connected
-          if (pusher && isConnected && pusher.connection.state === 'connected') {
-            channel.unsubscribe()
-          }
-        } catch (err) {
-          // Silently ignore cleanup errors
-        }
+      // Play notification sound (optional)
+      try {
+        const audio = new Audio('/notification.mp3')
+        audio.volume = 0.5
+        audio.play().catch(() => {}) // Silently ignore audio errors
+      } catch (err) {
+        // Silently ignore audio errors
       }
-      
-      if (pusher) {
-        try {
-          // Disconnect pusher only if it's connected
-          if (isConnected && pusher.connection.state !== 'disconnected') {
-            pusher.disconnect()
-          }
-        } catch (err) {
-          // Silently ignore cleanup errors
-        }
+    },
+    onBirthdayNotification: (data) => {
+      console.log('Birthday notification received:', data)
+      if (data.members && data.members.length > 0) {
+        console.log('Setting birthday members:', data.members)
+        setBirthdayMembers(data.members)
       }
-    }
-  }, [])
+    },
+    autoConnect: true
+  })
 
   const navItems = [
     { 
@@ -200,6 +134,14 @@ export default function AdminLayout({ children, onLogout }) {
 
   return (
     <div className="min-h-screen bg-black">
+      {/* Birthday Notification Popup */}
+      {birthdayMembers && (
+        <BirthdayNotification
+          members={birthdayMembers}
+          onClose={() => setBirthdayMembers(null)}
+        />
+      )}
+      
       {/* Notification Popup - Global for all admin pages */}
       {notification && (
         <NotificationPopup
