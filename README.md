@@ -99,7 +99,6 @@ PUSHER_KEY=your_pusher_key
 PUSHER_SECRET=your_pusher_secret
 MAIL_USERNAME=your_email
 MAIL_PASSWORD=your_email_password
-WHATSAPP_API_KEY=your_whatsapp_key
 ```
 
 ---
