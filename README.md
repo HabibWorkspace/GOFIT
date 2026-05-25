@@ -1,4 +1,4 @@
-# 🏋️ Modern Fitness — Gym Management System
+# Modern Fitness — Gym Management System
 
 A full-stack gym management platform with role-based access control, hardware attendance integration, real-time notifications, and financial reporting. Built with Python Flask, React.js, and SQLite.
 
@@ -9,9 +9,9 @@ A full-stack gym management platform with role-based access control, hardware at
 
 ---
 
-## ✨ Features
+##  Features
 
-### 🔴 Admin Portal
+###  Admin Portal
 <img width="1306" height="603" alt="image" src="https://github.com/user-attachments/assets/6ca7fc06-1d70-4537-80a5-73e9a100957a" />
 
 
@@ -27,7 +27,7 @@ A full-stack gym management platform with role-based access control, hardware at
 | **Settings** | Configure admission fees, reset passwords |
 | **Attendance** | View and manage member attendance logs |
 
-### 🔵 Super Admin Portal
+###  Super Admin Portal
 <img width="1309" height="609" alt="image" src="https://github.com/user-attachments/assets/b8588288-0be7-40da-9176-db7c71dec0b4" />
 
 | Module | Description |
@@ -37,7 +37,7 @@ A full-stack gym management platform with role-based access control, hardware at
 | **Admin Management** | Create and manage admin (receptionist) accounts |
 | **Attendance Summary** | Today's check-in overview across all members |
 
-### 🟢 Member Portal
+###  Member Portal
 <img width="914" height="608" alt="image" src="https://github.com/user-attachments/assets/fa8debb5-b686-4514-a69f-49b3ca3e3d05" />
 
 - Members mark and view their own attendance
@@ -45,7 +45,7 @@ A full-stack gym management platform with role-based access control, hardware at
 
 ---
 
-## ⚡ Bonus Features
+##  Bonus Features
 
 - **Turnstile Machine Integration** — Physical turnstile linked to the system; members scan a QR code per session to auto-log attendance
 - **Live Attendance Pop-ups** — Real-time notifications via Pusher WebSockets whenever a member checks in
@@ -53,7 +53,7 @@ A full-stack gym management platform with role-based access control, hardware at
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend:** React.js, JavaScript, HTML/CSS
 - **Backend:** Python Flask, REST API
@@ -64,7 +64,7 @@ A full-stack gym management platform with role-based access control, hardware at
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Python 3.x
@@ -104,7 +104,7 @@ WHATSAPP_API_KEY=your_whatsapp_key
 
 ---
 
-## 👤 User Roles
+##  User Roles
 
 | Role | Access Level |
 |------|-------------|
@@ -114,12 +114,12 @@ WHATSAPP_API_KEY=your_whatsapp_key
 
 ---
 
-## 📄 License
+##  License
 
 MIT License — feel free to use this as a reference or learning resource.
 
 ---
 
-## 📫 Contact
+##  Contact
 
 Built by **Habib** — m.habib.workspace@gmail.com
