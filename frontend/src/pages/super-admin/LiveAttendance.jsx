@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import SuperAdminLayout from '../../components/layouts/SuperAdminLayout'
 import apiClient from '../../services/api'
-import Pusher from 'pusher-js'
 
 export default function LiveAttendance() {
   const [stats, setStats] = useState({
@@ -23,40 +22,8 @@ export default function LiveAttendance() {
       }, 10000)
     }
 
-    // Initialize Pusher for real-time updates
-    let pusher = null
-    let channel = null
-    
-    try {
-      const pusherKey = import.meta.env.VITE_PUSHER_KEY
-      const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'
-      
-      if (pusherKey) {
-        pusher = new Pusher(pusherKey, {
-          cluster: pusherCluster,
-          encrypted: true
-        })
-        
-        channel = pusher.subscribe('admin-notifications')
-        
-        channel.bind('member-checkin', (data) => {
-          console.log('Live Attendance - Member check-in:', data)
-          fetchTodayAttendance()
-        })
-        
-        console.log('Live Attendance - Pusher connected')
-      }
-    } catch (err) {
-      console.error('Failed to initialize Pusher:', err)
-    }
-
     return () => {
       if (interval) clearInterval(interval)
-      if (channel) {
-        channel.unbind_all()
-        channel.unsubscribe()
-      }
-      if (pusher) pusher.disconnect()
     }
   }, [autoRefresh])
 

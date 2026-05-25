@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../../services/api'
 import NotificationPopup from '../../components/NotificationPopup'
-import Pusher from 'pusher-js'
 
 export default function AdminQRScanner() {
   const [result, setResult] = useState(null)
@@ -24,58 +23,8 @@ export default function AdminQRScanner() {
       generateSessionQR()
     }, 30000) // 30 seconds
 
-    // Initialize Pusher for real-time check-in notifications
-    let pusher = null
-    let channel = null
-    
-    try {
-      const pusherKey = import.meta.env.VITE_PUSHER_KEY
-      const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'
-      
-      if (pusherKey) {
-        pusher = new Pusher(pusherKey, {
-          cluster: pusherCluster,
-          encrypted: true
-        })
-        
-        channel = pusher.subscribe('admin-notifications')
-        
-        // Listen for member check-in events
-        channel.bind('member-checkin', (data) => {
-          console.log('QR Scanner - Member check-in notification:', data)
-          
-          // Show notification popup
-          setNotification(data)
-          
-          // Play notification sound (optional)
-          try {
-            const audio = new Audio('/notification.mp3')
-            audio.volume = 0.5
-            audio.play().catch(err => console.log('Audio play failed:', err))
-          } catch (err) {
-            console.log('Audio not available:', err)
-          }
-        })
-        
-        console.log('QR Scanner - Pusher connected successfully')
-      } else {
-        console.warn('Pusher key not configured. Real-time notifications disabled.')
-      }
-    } catch (err) {
-      console.error('Failed to initialize Pusher:', err)
-    }
-
     return () => {
       clearInterval(interval)
-      
-      // Cleanup Pusher connection
-      if (channel) {
-        channel.unbind_all()
-        channel.unsubscribe()
-      }
-      if (pusher) {
-        pusher.disconnect()
-      }
     }
   }, [])
 

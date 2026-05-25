@@ -53,11 +53,21 @@ class ProductionConfig(Config):
     else:
         SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(_instance_dir, "fitnix.db")}'
 
+    # Enhanced SQLAlchemy configuration for stability
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'connect_args': {'check_same_thread': False},
+        'pool_pre_ping': True,  # Verify connections before using
+        'pool_recycle': 300,  # Recycle connections every 5 minutes
+        'pool_size': 10,  # Connection pool size
+        'max_overflow': 20,  # Max overflow connections
+        'pool_timeout': 30,  # Timeout for getting connection from pool
+        'connect_args': {
+            'check_same_thread': False,  # Allow multi-threading
+            'timeout': 20  # SQLite connection timeout
+        },
     }
+    
+    # Request timeout configuration
+    SEND_FILE_MAX_AGE_DEFAULT = 31536000  # 1 year for static files
 
 
 class TestingConfig(Config):

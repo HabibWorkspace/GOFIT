@@ -29,6 +29,12 @@ frontend/.vite/
 *.swo
 *~
 
+# Kiro
+.kiro/
+
+# Local environment
+.env.local
+
 # OS
 .DS_Store
 Thumbs.db

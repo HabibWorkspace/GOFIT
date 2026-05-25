@@ -818,7 +818,102 @@ GOFIT Gym`
           </div>
         )}
 
-        {/* SECTION 2: MONTHLY SUMMARY */}
+        {/* SECTION 2: DISCOUNT METRICS */}
+        {(() => {
+          // Calculate total discounts from all monthly summaries
+          const totalDiscounts = monthlySummary.reduce((sum, month) => {
+            const monthTxns = monthTransactions[month.month] || []
+            return sum + monthTxns.reduce((txnSum, txn) => 
+              txnSum + parseFloat(txn.discount_amount || 0), 0
+            )
+          }, 0)
+          
+          const discountedTransactionsCount = monthlySummary.reduce((count, month) => {
+            const monthTxns = monthTransactions[month.month] || []
+            return count + monthTxns.filter(txn => 
+              txn.discount_amount && parseFloat(txn.discount_amount) > 0
+            ).length
+          }, 0)
+          
+          // Only show if there are discounts
+          if (totalDiscounts > 0 || discountedTransactionsCount > 0) {
+            return (
+              <div className="bg-gradient-to-br from-blue-900/20 to-blue-900/5 border-2 border-blue-500/30 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-blue-500/20 rounded-xl">
+                    <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-blue-400">Discount Summary</h2>
+                    <p className="text-fitnix-off-white/60 text-sm">
+                      Total discounts given across all transactions
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-fitnix-dark-light border border-blue-500/30 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-fitnix-off-white/50 uppercase tracking-wide">Total Discounts</p>
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-400">{formatCurrency(totalDiscounts)}</p>
+                    <p className="text-xs text-fitnix-off-white/40 mt-1">
+                      Across loaded months
+                    </p>
+                  </div>
+
+                  <div className="bg-fitnix-dark-light border border-blue-500/30 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-fitnix-off-white/50 uppercase tracking-wide">Discounted Transactions</p>
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-400">{discountedTransactionsCount}</p>
+                    <p className="text-xs text-fitnix-off-white/40 mt-1">
+                      Transactions with discounts
+                    </p>
+                  </div>
+
+                  <div className="bg-fitnix-dark-light border border-blue-500/30 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-fitnix-off-white/50 uppercase tracking-wide">Average Discount</p>
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-400">
+                      {discountedTransactionsCount > 0 
+                        ? formatCurrency(totalDiscounts / discountedTransactionsCount)
+                        : formatCurrency(0)
+                      }
+                    </p>
+                    <p className="text-xs text-fitnix-off-white/40 mt-1">
+                      Per discounted transaction
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start">
+                  <svg className="w-5 h-5 text-blue-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-blue-300">
+                    Discount data is calculated from expanded months only. Expand more months to see complete discount statistics.
+                  </p>
+                </div>
+              </div>
+            )
+          }
+          return null
+        })()}
+
+        {/* SECTION 3: MONTHLY SUMMARY */}
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-fitnix-off-white flex items-center gap-2">
             <svg className="w-6 h-6 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -896,54 +991,83 @@ GOFIT Gym`
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-fitnix-gold uppercase">Member</th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-fitnix-gold uppercase">Amount</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-fitnix-gold uppercase hidden md:table-cell">Discount</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-fitnix-gold uppercase">Status</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-fitnix-gold uppercase hidden lg:table-cell">Due Date</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-fitnix-gold uppercase">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-fitnix-gold/10">
-                          {monthTransactions[monthData.month].map(transaction => (
-                            <tr key={transaction.id} className="hover:bg-fitnix-dark-light/50 transition-colors">
-                              <td className="px-4 py-3">
-                                <div>
-                                  <p className="text-fitnix-off-white font-semibold">{transaction.full_name}</p>
-                                  <p className="text-fitnix-off-white/60 text-sm">ID: {transaction.member_number}</p>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <span className="text-fitnix-off-white font-bold">{formatCurrency(transaction.amount)}</span>
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className={`px-3 py-1 text-xs rounded-full font-semibold border ${getStatusColor(transaction.status)}`}>
-                                  {transaction.status}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-center text-fitnix-off-white/80 text-sm hidden lg:table-cell">
-                                {formatDate(transaction.due_date)}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  {transaction.status === 'COMPLETED' && (
-                                    <button
-                                      onClick={() => handlePrintReceipt(transaction)}
-                                      className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1 rounded-lg text-sm font-semibold transition-all flex items-center gap-1"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                      </svg>
-                                      Print
-                                    </button>
+                          {monthTransactions[monthData.month].map(transaction => {
+                            const discountAmount = parseFloat(transaction.discount_amount || 0)
+                            const hasDiscount = discountAmount > 0
+                            
+                            return (
+                              <tr key={transaction.id} className="hover:bg-fitnix-dark-light/50 transition-colors">
+                                <td className="px-4 py-3">
+                                  <div>
+                                    <p className="text-fitnix-off-white font-semibold">{transaction.full_name}</p>
+                                    <p className="text-fitnix-off-white/60 text-sm">ID: {transaction.member_number}</p>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <span className={`font-bold ${hasDiscount ? 'text-fitnix-gold text-lg' : 'text-fitnix-off-white'}`}>
+                                    {formatCurrency(transaction.amount)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-right hidden md:table-cell">
+                                  {hasDiscount ? (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <span className="text-blue-400 font-bold text-sm">
+                                        -{formatCurrency(discountAmount)}
+                                      </span>
+                                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                                        transaction.discount_type === 'percentage'
+                                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                          : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                      }`}>
+                                        {transaction.discount_type === 'percentage' 
+                                          ? `${((discountAmount / (parseFloat(transaction.amount) + discountAmount)) * 100).toFixed(0)}% OFF`
+                                          : `Rs. ${parseFloat(discountAmount).toFixed(0)} OFF`
+                                        }
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-fitnix-off-white/30 text-sm">—</span>
                                   )}
-                                  <button
-                                    onClick={() => navigate(`/admin/members/${transaction.member_id}`)}
-                                    className="bg-fitnix-dark-light hover:bg-fitnix-gold/10 border border-fitnix-gold/30 text-fitnix-gold px-3 py-1 rounded-lg text-sm font-semibold transition-all"
-                                  >
-                                    View
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className={`px-3 py-1 text-xs rounded-full font-semibold border ${getStatusColor(transaction.status)}`}>
+                                    {transaction.status}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center text-fitnix-off-white/80 text-sm hidden lg:table-cell">
+                                  {formatDate(transaction.due_date)}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    {transaction.status === 'COMPLETED' && (
+                                      <button
+                                        onClick={() => handlePrintReceipt(transaction)}
+                                        className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1 rounded-lg text-sm font-semibold transition-all flex items-center gap-1"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                        Print
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => navigate(`/admin/members/${transaction.member_id}`)}
+                                      className="bg-fitnix-dark-light hover:bg-fitnix-gold/10 border border-fitnix-gold/30 text-fitnix-gold px-3 py-1 rounded-lg text-sm font-semibold transition-all"
+                                    >
+                                      View
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>

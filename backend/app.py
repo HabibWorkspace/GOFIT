@@ -59,35 +59,52 @@ def create_app(config=None):
     jwt.init_app(app)
     mail.init_app(app)
     
-    # Initialize Flask-SocketIO with CORS support
+    # Initialize Flask-SocketIO with CORS support and improved connection handling
+    # Using eventlet for production-grade async support
     socketio.init_app(app, 
                      cors_allowed_origins="*",
-                     async_mode='threading',
-                     logger=True,
-                     engineio_logger=True)
+                     async_mode='eventlet',  # Use eventlet for production
+                     logger=False,  # Disable verbose logging
+                     engineio_logger=False,  # Disable engine.io logging
+                     ping_timeout=60,  # Reduce to 1 minute for faster detection
+                     ping_interval=20,  # Send ping every 20 seconds
+                     max_http_buffer_size=1000000,  # 1MB buffer
+                     allow_upgrades=False,  # CRITICAL: Disable WebSocket upgrade
+                     transports=['polling'],  # Force polling only (no WebSocket)
+                     http_compression=True,
+                     compression_threshold=1024,
+                     always_connect=False,  # Don't force reconnection
+                     reconnection=True,  # Allow client reconnection
+                     reconnection_attempts=5,  # Limit reconnection attempts
+                     reconnection_delay=1000,  # 1 second between attempts
+                     reconnection_delay_max=5000)  # Max 5 seconds delay
     
     # Debug: Log email configuration
+    app.logger.info(f"FLASK_ENV: {os.getenv('FLASK_ENV')}")
+    app.logger.info(f"app.config.ENV: {app.config.get('ENV')}")
     app.logger.info(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
     app.logger.info(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
     app.logger.info(f"MAIL_DEFAULT_SENDER: {app.config.get('MAIL_DEFAULT_SENDER')}")
     app.logger.info(f"MAIL_PASSWORD: {'*' * len(app.config.get('MAIL_PASSWORD', '')) if app.config.get('MAIL_PASSWORD') else 'NOT SET'}")
     
     # Configure CORS - Production-ready with environment-based origins
-    allowed_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+    cors_origins_env = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173')
     
-    # In production, use specific origins only
+    # In production, use specific origins from environment
     if app.config.get('ENV') == 'production':
-        allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+        allowed_origins = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+        app.logger.info(f"Production CORS origins: {allowed_origins}")
     else:
-        # Development: allow localhost
+        # Development: allow all origins
         allowed_origins = "*"
+        app.logger.info("Development mode: CORS allows all origins")
     
     CORS(app, 
          resources={r"/api/*": {
              "origins": allowed_origins,
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "Cache-Control", "Pragma", "Expires", "X-Requested-With"],
-             "supports_credentials": True if app.config.get('ENV') == 'production' else False,
+             "supports_credentials": True,
              "expose_headers": ["Content-Type", "Authorization"],
              "max_age": 3600
          }})
@@ -117,6 +134,10 @@ def create_app(config=None):
     app.register_blueprint(supplements_bp, url_prefix='/api/supplements')
     app.register_blueprint(gate_bp, url_prefix='/api/gate')
     
+    # Register WebSocket event handlers
+    from routes.websocket_events import register_socketio_events
+    register_socketio_events(socketio, app)
+    
     # Add request logging (only in development)
     if app.config.get('ENV') != 'production':
         @app.before_request
@@ -129,6 +150,21 @@ def create_app(config=None):
             app.logger.info(f"Endpoint: {request.endpoint}")
             app.logger.info(f"Headers: {dict(request.headers)}")
             app.logger.info(f"{'='*60}\n")
+    
+    # Add database connection cleanup after each request
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        """Clean up database connections after each request."""
+        try:
+            db.session.remove()
+        except Exception as e:
+            app.logger.error(f"Error cleaning up database session: {e}")
+    
+    # Add request timeout handling
+    @app.before_request
+    def before_request_timeout():
+        """Set request timeout to prevent hanging connections."""
+        request.environ.setdefault('werkzeug.server.shutdown', lambda: None)
     
     # Add security headers
     @app.after_request
@@ -177,6 +213,26 @@ def create_app(config=None):
             'dirname': os.path.dirname(__file__)
         }), 200
     
+    # Simple root route
+    @app.route('/')
+    def index():
+        """Root endpoint - API information."""
+        return jsonify({
+            'message': 'Gym Management System API',
+            'status': 'running',
+            'version': '1.0.0',
+            'endpoints': {
+                'health': '/api/health',
+                'auth': '/api/auth/*',
+                'members': '/api/admin/members/*',
+                'trainers': '/api/admin/trainers/*',
+                'packages': '/api/admin/packages/*',
+                'transactions': '/api/admin/transactions/*',
+                'attendance': '/api/attendance/*'
+            },
+            'documentation': 'Contact administrator for API documentation'
+        }), 200
+    
     # Serve frontend static files - DISABLED to test API routes
     # @app.route('/', defaults={'path': ''})
     # @app.route('/<path:path>')
@@ -184,10 +240,14 @@ def create_app(config=None):
     #     """Serve frontend files for SPA routing."""
     #     pass
     
-    # Add catch-all 404 handler - DISABLED FOR TESTING
-    # @app.errorhandler(404)
-    # def not_found(error):
-    #     return jsonify({'error': 'Not found', 'path': request.path}), 404
+    # Add catch-all 404 handler
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            'error': 'Not found',
+            'path': request.path,
+            'message': 'The requested endpoint does not exist. Check /api/health for server status.'
+        }), 404
     
     # Create database tables
     with app.app_context():
@@ -201,5 +261,7 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     socketio_instance.run(app, host='0.0.0.0', port=port, debug=os.getenv('FLASK_ENV') == 'development', use_reloader=False)
 else:
-    # For gunicorn
+    # For gunicorn and service
     app, socketio_instance = create_app()
+    # Export socketio_instance for use in routes
+    __all__ = ['app', 'socketio_instance']

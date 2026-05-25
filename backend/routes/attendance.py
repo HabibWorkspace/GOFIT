@@ -102,7 +102,7 @@ def sync_attendance():
     }
     """
     try:
-        from services.pusher_service import PusherService
+        from services.websocket_service import WebSocketService
         from models import Package
         
         data = request.get_json()
@@ -245,12 +245,13 @@ def sync_attendance():
                         'days_info': days_info
                     }
                     
-                    # Send Pusher notification
-                    PusherService.send_member_checkin(member_data)
+                    # Send WebSocket notification
+                    from app import socketio_instance
+                    WebSocketService.send_member_checkin(member_data, socketio_instance)
                     
-                except Exception as pusher_error:
-                    # Don't fail the sync if Pusher fails
-                    current_app.logger.error(f"Failed to send Pusher notification: {str(pusher_error)}")
+                except Exception as websocket_error:
+                    # Don't fail the sync if WebSocket fails
+                    current_app.logger.error(f"Failed to send WebSocket notification: {str(websocket_error)}")
         
         # Update bridge heartbeat
         heartbeat = BridgeHeartbeat.query.first()
@@ -768,9 +769,9 @@ def check_in_qr():
         db.session.add(attendance)
         db.session.commit()
         
-        # Send Pusher notification
+        # Send WebSocket notification
         try:
-            from services.pusher_service import PusherService
+            from services.websocket_service import WebSocketService
             from models import Package
             
             package_name = None
@@ -791,9 +792,10 @@ def check_in_qr():
                 'door': 0
             }
             
-            PusherService.send_member_checkin(member_data)
-        except Exception as pusher_error:
-            current_app.logger.error(f"Failed to send Pusher notification: {str(pusher_error)}")
+            from app import socketio_instance
+            WebSocketService.send_member_checkin(member_data, socketio_instance)
+        except Exception as websocket_error:
+            current_app.logger.error(f"Failed to send WebSocket notification: {str(websocket_error)}")
         
         return jsonify({
             'success': True,
@@ -1033,9 +1035,9 @@ def check_in_session():
         current_app.logger.info(f"Attendance record created for member: {member.full_name}")
         current_app.logger.info(f"Gate command created: {gate_command.id} for door 1")
         
-        # Send Pusher notification
+        # Send WebSocket notification
         try:
-            from services.pusher_service import PusherService
+            from services.websocket_service import WebSocketService
             from models import Package
             
             package_name = None
@@ -1057,10 +1059,11 @@ def check_in_session():
                 'days_info': days_info
             }
             
-            PusherService.send_member_checkin(member_data)
-            current_app.logger.info(f"Pusher notification sent for member: {member.full_name}")
-        except Exception as pusher_error:
-            current_app.logger.error(f"Failed to send Pusher notification: {str(pusher_error)}")
+            from app import socketio_instance
+            WebSocketService.send_member_checkin(member_data, socketio_instance)
+            current_app.logger.info(f"WebSocket notification sent for member: {member.full_name}")
+        except Exception as websocket_error:
+            current_app.logger.error(f"Failed to send WebSocket notification: {str(websocket_error)}")
         
         return jsonify({
             'success': True,

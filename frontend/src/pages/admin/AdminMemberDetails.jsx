@@ -43,7 +43,18 @@ export default function AdminMemberDetails() {
     package_start_date: '',
     package_expiry_date: '',
     card_id: '',
+    discount_amount: '',
+    discount_type: 'fixed',
   })
+  
+  // Discount Edit Modal State
+  const [showDiscountModal, setShowDiscountModal] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [discountFormData, setDiscountFormData] = useState({
+    discount_amount: '',
+    discount_type: 'fixed'
+  })
+  const [discountLoading, setDiscountLoading] = useState(false)
 
   useEffect(() => {
     fetchMemberDetails()
@@ -84,6 +95,8 @@ export default function AdminMemberDetails() {
         package_start_date: response.data.package_start_date || '',
         package_expiry_date: response.data.package_expiry_date || '',
         card_id: response.data.card_id || '',
+        discount_amount: '',
+        discount_type: 'fixed',
       })
       setProfileImagePreview(response.data.profile_picture || null)
     } catch (err) {
@@ -190,6 +203,8 @@ export default function AdminMemberDetails() {
         package_start_date: formData.package_start_date,
         package_expiry_date: formData.package_expiry_date,
         card_id: formData.card_id,
+        discount_amount: formData.discount_amount ? parseFloat(formData.discount_amount) : 0,
+        discount_type: formData.discount_type,
       }
       
       if (profileImage) {
@@ -227,6 +242,8 @@ export default function AdminMemberDetails() {
       package_start_date: member?.package_start_date || '',
       package_expiry_date: member?.package_expiry_date || '',
       card_id: member?.card_id || '',
+      discount_amount: '',
+      discount_type: 'fixed',
     })
     setError('')
     setSuccess('')
@@ -364,6 +381,62 @@ export default function AdminMemberDetails() {
     } catch (err) {
       console.error('Receipt error:', err)
       setError('Failed to generate receipt')
+    }
+  }
+
+  const handleOpenDiscountModal = (txn) => {
+    setSelectedTransaction(txn)
+    const currentDiscount = parseFloat(txn.discount_amount || 0)
+    const finalAmount = parseFloat(txn.amount || 0)
+    const originalAmount = finalAmount + currentDiscount
+    
+    // If there's an existing discount, calculate the input value based on type
+    let displayAmount = ''
+    if (currentDiscount > 0) {
+      if (txn.discount_type === 'percentage') {
+        displayAmount = ((currentDiscount / originalAmount) * 100).toFixed(2)
+      } else {
+        displayAmount = currentDiscount.toFixed(2)
+      }
+    }
+    
+    setDiscountFormData({
+      discount_amount: displayAmount,
+      discount_type: txn.discount_type || 'fixed'
+    })
+    setShowDiscountModal(true)
+  }
+
+  const handleCloseDiscountModal = () => {
+    setShowDiscountModal(false)
+    setSelectedTransaction(null)
+    setDiscountFormData({
+      discount_amount: '',
+      discount_type: 'fixed'
+    })
+  }
+
+  const handleUpdateDiscount = async () => {
+    if (!selectedTransaction) return
+    
+    try {
+      setDiscountLoading(true)
+      setError('')
+      
+      const discountAmount = parseFloat(discountFormData.discount_amount || 0)
+      
+      await apiClient.put(`/admin/finance/transactions/${selectedTransaction.id}/update-discount`, {
+        discount_amount: discountAmount,
+        discount_type: discountFormData.discount_type
+      })
+      
+      setSuccess('Discount updated successfully!')
+      handleCloseDiscountModal()
+      await fetchMemberDetails()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update discount')
+    } finally {
+      setDiscountLoading(false)
     }
   }
 
@@ -835,6 +908,120 @@ export default function AdminMemberDetails() {
               </div>
             </div>
 
+            {/* Discount (Optional) */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-fitnix-gold mb-3 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Discount (Optional)
+              </h3>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-blue-300">
+                    Add a discount for this member's package. This will be applied to the transaction created when you save.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Discount Type
+                  </label>
+                  <select
+                    value={formData.discount_type}
+                    onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })}
+                    className="fitnix-input"
+                  >
+                    <option value="fixed">Fixed Amount (Rs.)</option>
+                    <option value="percentage">Percentage (%)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                    Discount {formData.discount_type === 'percentage' ? 'Percentage' : 'Amount'}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={formData.discount_amount}
+                      onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
+                      className="fitnix-input pr-12"
+                      placeholder={formData.discount_type === 'percentage' ? 'e.g., 10' : 'e.g., 500'}
+                      min="0"
+                      max={formData.discount_type === 'percentage' ? '100' : undefined}
+                      step={formData.discount_type === 'percentage' ? '1' : '100'}
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-fitnix-gold font-semibold">
+                      {formData.discount_type === 'percentage' ? '%' : 'Rs.'}
+                    </div>
+                  </div>
+                  <p className="text-xs text-fitnix-off-white/50 mt-1">
+                    {formData.discount_type === 'percentage' 
+                      ? 'Enter percentage (0-100)'
+                      : 'Enter amount in Rupees'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Discount Preview */}
+              {formData.package_id && formData.discount_amount && parseFloat(formData.discount_amount) > 0 && (
+                <div className="mt-4 bg-fitnix-dark-light border border-fitnix-gold/30 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-fitnix-gold mb-2">Discount Preview</h4>
+                  {(() => {
+                    const selectedPackage = packages.find(pkg => pkg.id === formData.package_id)
+                    const selectedTrainer = trainers.find(t => t.id === formData.trainer_id)
+                    
+                    if (!selectedPackage) return null
+                    
+                    const packagePrice = parseFloat(selectedPackage.price || 0)
+                    const trainerFee = selectedTrainer ? parseFloat(selectedTrainer.salary_rate || 0) : 0
+                    const originalTotal = packagePrice + trainerFee
+                    
+                    let discountAmount = 0
+                    if (formData.discount_type === 'percentage') {
+                      discountAmount = (originalTotal * parseFloat(formData.discount_amount)) / 100
+                    } else {
+                      discountAmount = parseFloat(formData.discount_amount)
+                    }
+                    
+                    const finalAmount = Math.max(0, originalTotal - discountAmount)
+                    
+                    return (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-fitnix-off-white/60">Package Price:</span>
+                          <span className="text-fitnix-off-white">Rs. {packagePrice.toLocaleString()}</span>
+                        </div>
+                        {trainerFee > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-fitnix-off-white/60">Trainer Fee:</span>
+                            <span className="text-fitnix-off-white">Rs. {trainerFee.toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-t border-fitnix-gold/20 pt-2">
+                          <span className="text-fitnix-off-white/60">Original Total:</span>
+                          <span className="text-fitnix-off-white font-semibold">Rs. {originalTotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-blue-400">
+                          <span>Discount:</span>
+                          <span className="font-semibold">- Rs. {discountAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-fitnix-gold/20 pt-2">
+                          <span className="text-fitnix-gold font-semibold">Final Amount:</span>
+                          <span className="text-fitnix-gold font-bold text-lg">Rs. {finalAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+
             {/* Package Dates - Auto-calculate expiry */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-fitnix-gold mb-3">Package Duration</h3>
@@ -1106,6 +1293,109 @@ export default function AdminMemberDetails() {
           )}
         </div>
 
+        {/* Discount Summary Card */}
+        <div className="fitnix-card-glow">
+          <h2 className="text-xl font-bold text-fitnix-gold mb-4 flex items-center">
+            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Discount Summary
+          </h2>
+          
+          {(() => {
+            // Calculate discount statistics
+            const transactions = member.transactions || []
+            const discountedTransactions = transactions.filter(txn => 
+              txn.discount_amount && parseFloat(txn.discount_amount) > 0
+            )
+            
+            const totalDiscount = discountedTransactions.reduce((sum, txn) => 
+              sum + parseFloat(txn.discount_amount || 0), 0
+            )
+            
+            const totalPaid = transactions
+              .filter(txn => txn.status === 'COMPLETED')
+              .reduce((sum, txn) => sum + parseFloat(txn.amount || 0), 0)
+            
+            const totalOriginal = transactions
+              .filter(txn => txn.status === 'COMPLETED')
+              .reduce((sum, txn) => {
+                const amount = parseFloat(txn.amount || 0)
+                const discount = parseFloat(txn.discount_amount || 0)
+                return sum + amount + discount
+              }, 0)
+            
+            const discountPercentage = totalOriginal > 0 
+              ? ((totalDiscount / totalOriginal) * 100).toFixed(1)
+              : 0
+            
+            const lastDiscountTxn = discountedTransactions.length > 0
+              ? discountedTransactions.sort((a, b) => 
+                  new Date(b.created_at || b.due_date) - new Date(a.created_at || a.due_date)
+                )[0]
+              : null
+            
+            return (
+              <>
+                {discountedTransactions.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-fitnix-dark-light border border-fitnix-gold/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-fitnix-off-white/50 uppercase tracking-wide">Total Discount Given</p>
+                        <svg className="w-5 h-5 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-3xl font-bold text-fitnix-gold">{formatCurrency(totalDiscount)}</p>
+                      <p className="text-xs text-fitnix-off-white/40 mt-1">
+                        Across {discountedTransactions.length} transaction{discountedTransactions.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-fitnix-dark-light border border-fitnix-gold/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-fitnix-off-white/50 uppercase tracking-wide">Average Discount Rate</p>
+                        <svg className="w-5 h-5 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-3xl font-bold text-fitnix-gold">{discountPercentage}%</p>
+                      <p className="text-xs text-fitnix-off-white/40 mt-1">
+                        Of total original amount
+                      </p>
+                    </div>
+                    
+                    <div className="bg-fitnix-dark-light border border-fitnix-gold/30 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-fitnix-off-white/50 uppercase tracking-wide">Last Discount</p>
+                        <svg className="w-5 h-5 text-fitnix-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-3xl font-bold text-fitnix-gold">
+                        {lastDiscountTxn ? formatCurrency(lastDiscountTxn.discount_amount) : 'N/A'}
+                      </p>
+                      <p className="text-xs text-fitnix-off-white/40 mt-1">
+                        {lastDiscountTxn ? formatDate(lastDiscountTxn.due_date || lastDiscountTxn.created_at) : 'No recent discount'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-fitnix-dark-light/50 border border-fitnix-off-white/10 rounded-lg p-6 text-center">
+                    <svg className="w-12 h-12 text-fitnix-off-white/20 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-fitnix-off-white/50 font-medium">No discounts given yet</p>
+                    <p className="text-sm text-fitnix-off-white/30 mt-1">
+                      Discounts will appear here when applied to transactions
+                    </p>
+                  </div>
+                )}
+              </>
+            )
+          })()}
+        </div>
+
         {/* Current Package & Trainer */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Current Package */}
@@ -1281,71 +1571,126 @@ export default function AdminMemberDetails() {
 
           {member.transactions && member.transactions.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-max">
                 <thead>
                   <tr className="border-b border-fitnix-gold/20">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Month</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Amount</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Due Date</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Paid Date</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-fitnix-gold uppercase tracking-wide">Action</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Month</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Type</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Original Price</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Discount</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Final Amount</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Status</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Due Date</th>
+                    <th className="text-left py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Paid Date</th>
+                    <th className="text-center py-3 px-3 text-xs font-semibold text-fitnix-gold uppercase tracking-wide whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {member.transactions.map((txn, index) => (
-                    <tr key={index} className="border-b border-fitnix-off-white/5 hover:bg-fitnix-dark-light/30 transition-colors">
-                      <td className="py-4 px-4 text-fitnix-off-white/70 font-medium text-sm">
-                        {txn.due_date ? new Date(txn.due_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                          txn.transaction_type === 'ADMISSION'
-                            ? 'bg-purple-500/20 text-purple-400'
-                            : 'bg-fitnix-gold/20 text-fitnix-gold'
-                        }`}>
-                          {txn.transaction_type === 'ADMISSION' ? 'Admission Fee' : 'Package Fee'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-fitnix-gold font-semibold">{formatCurrency(txn.amount)}</td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                          txn.status === 'COMPLETED'
-                            ? 'bg-green-500/20 text-green-400'
-                            : txn.status === 'PENDING'
-                            ? 'bg-yellow-500/20 text-yellow-400'
-                            : 'bg-red-500/20 text-red-400'
-                        }`}>
-                          {txn.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-fitnix-off-white">{formatDate(txn.due_date)}</td>
-                      <td className="py-4 px-4 text-fitnix-off-white">{txn.paid_date ? formatDate(txn.paid_date) : '—'}</td>
-                      <td className="py-4 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {txn.status !== 'COMPLETED' ? (
-                            <button
-                              onClick={() => handleMarkTransactionPaid(txn.id)}
-                              className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                            >
-                              Mark Paid
-                            </button>
+                  {member.transactions.map((txn, index) => {
+                    const discountAmount = parseFloat(txn.discount_amount || 0)
+                    const finalAmount = parseFloat(txn.amount || 0)
+                    const originalAmount = finalAmount + discountAmount
+                    const hasDiscount = discountAmount > 0
+                    
+                    return (
+                      <tr key={index} className="border-b border-fitnix-off-white/5 hover:bg-fitnix-dark-light/30 transition-colors">
+                        <td className="py-3 px-3 text-fitnix-off-white/70 font-medium text-sm whitespace-nowrap">
+                          {txn.due_date ? new Date(txn.due_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${
+                            txn.transaction_type === 'ADMISSION'
+                              ? 'bg-purple-500/20 text-purple-400'
+                              : 'bg-fitnix-gold/20 text-fitnix-gold'
+                          }`}>
+                            {txn.transaction_type === 'ADMISSION' ? 'Admission' : 'Package'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          {hasDiscount ? (
+                            <span className="text-fitnix-off-white/50 line-through text-sm whitespace-nowrap">
+                              {formatCurrency(originalAmount)}
+                            </span>
                           ) : (
+                            <span className="text-fitnix-off-white/50 text-sm">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          {hasDiscount ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-fitnix-gold font-bold text-sm whitespace-nowrap">
+                                -{formatCurrency(discountAmount)}
+                              </span>
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold w-fit whitespace-nowrap ${
+                                txn.discount_type === 'percentage'
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                              }`}>
+                                {txn.discount_type === 'percentage' 
+                                  ? `${((discountAmount / originalAmount) * 100).toFixed(0)}% OFF`
+                                  : `Rs. ${parseFloat(discountAmount).toFixed(0)} OFF`
+                                }
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-fitnix-off-white/30 text-xs">None</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`font-semibold whitespace-nowrap ${hasDiscount ? 'text-fitnix-gold text-base' : 'text-fitnix-off-white text-sm'}`}>
+                            {formatCurrency(finalAmount)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${
+                            txn.status === 'COMPLETED'
+                              ? 'bg-green-500/20 text-green-400'
+                              : txn.status === 'PENDING'
+                              ? 'bg-yellow-500/20 text-yellow-400'
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {txn.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-fitnix-off-white text-sm whitespace-nowrap">{formatDate(txn.due_date)}</td>
+                        <td className="py-3 px-3 text-fitnix-off-white text-sm whitespace-nowrap">{txn.paid_date ? formatDate(txn.paid_date) : '—'}</td>
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* Edit Discount Button - Always visible */}
                             <button
-                              onClick={() => handlePrintTransactionReceipt(txn)}
-                              className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1"
+                              onClick={() => handleOpenDiscountModal(txn)}
+                              className="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 whitespace-nowrap"
+                              title="Edit Discount"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Print
+                              Discount
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            
+                            {txn.status !== 'COMPLETED' ? (
+                              <button
+                                onClick={() => handleMarkTransactionPaid(txn.id)}
+                                className="bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
+                              >
+                                Mark Paid
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handlePrintTransactionReceipt(txn)}
+                                className="bg-fitnix-gold hover:bg-fitnix-gold-dark text-fitnix-dark px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 whitespace-nowrap"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                Print
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1492,6 +1837,161 @@ export default function AdminMemberDetails() {
               <button
                 onClick={() => setShowResetPasswordModal(false)}
                 className="flex-1 fitnix-button-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Discount Modal */}
+      {showDiscountModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-fitnix-dark border-2 border-fitnix-gold rounded-xl max-w-lg w-full p-6 animate-fadeIn">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-fitnix-gold flex items-center">
+                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Edit Transaction Discount
+              </h3>
+              <button
+                onClick={handleCloseDiscountModal}
+                className="text-fitnix-off-white/60 hover:text-fitnix-off-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Transaction Info */}
+            <div className="bg-fitnix-dark-light border border-fitnix-gold/20 rounded-lg p-4 mb-6">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-fitnix-off-white/60">Month:</span>
+                  <span className="text-fitnix-off-white font-semibold ml-2">
+                    {selectedTransaction.due_date ? new Date(selectedTransaction.due_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-fitnix-off-white/60">Type:</span>
+                  <span className="text-fitnix-gold font-semibold ml-2">
+                    {selectedTransaction.transaction_type === 'ADMISSION' ? 'Admission Fee' : 'Package Fee'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-fitnix-off-white/60">Current Amount:</span>
+                  <span className="text-fitnix-off-white font-semibold ml-2">
+                    Rs. {parseFloat(selectedTransaction.amount || 0).toFixed(2)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-fitnix-off-white/60">Current Discount:</span>
+                  <span className="text-fitnix-gold font-semibold ml-2">
+                    Rs. {parseFloat(selectedTransaction.discount_amount || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Discount Form */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                  Discount Type
+                </label>
+                <select
+                  value={discountFormData.discount_type}
+                  onChange={(e) => setDiscountFormData({ ...discountFormData, discount_type: e.target.value })}
+                  className="fitnix-input"
+                  disabled={discountLoading}
+                >
+                  <option value="fixed">Fixed Amount (Rs.)</option>
+                  <option value="percentage">Percentage (%)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-fitnix-off-white/80 mb-2">
+                  Discount {discountFormData.discount_type === 'percentage' ? 'Percentage' : 'Amount'}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={discountFormData.discount_amount}
+                    onChange={(e) => setDiscountFormData({ ...discountFormData, discount_amount: e.target.value })}
+                    className="fitnix-input pr-12"
+                    placeholder={discountFormData.discount_type === 'percentage' ? 'e.g., 10' : 'e.g., 500'}
+                    min="0"
+                    max={discountFormData.discount_type === 'percentage' ? '100' : undefined}
+                    step={discountFormData.discount_type === 'percentage' ? '0.01' : '1'}
+                    disabled={discountLoading}
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-fitnix-gold font-semibold">
+                    {discountFormData.discount_type === 'percentage' ? '%' : 'Rs.'}
+                  </div>
+                </div>
+                <p className="text-xs text-fitnix-off-white/50 mt-1">
+                  {discountFormData.discount_type === 'percentage' 
+                    ? 'Enter percentage (0-100). Set to 0 to remove discount.'
+                    : 'Enter amount in Rupees. Set to 0 to remove discount.'}
+                </p>
+              </div>
+
+              {/* Discount Preview */}
+              {discountFormData.discount_amount && parseFloat(discountFormData.discount_amount) > 0 && (
+                <div className="bg-fitnix-dark-light border border-fitnix-gold/30 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-fitnix-gold mb-2">Preview</h4>
+                  {(() => {
+                    const currentDiscount = parseFloat(selectedTransaction.discount_amount || 0)
+                    const currentAmount = parseFloat(selectedTransaction.amount || 0)
+                    const originalTotal = currentAmount + currentDiscount
+                    
+                    let newDiscount = 0
+                    if (discountFormData.discount_type === 'percentage') {
+                      newDiscount = (originalTotal * parseFloat(discountFormData.discount_amount)) / 100
+                    } else {
+                      newDiscount = parseFloat(discountFormData.discount_amount)
+                    }
+                    
+                    const newAmount = originalTotal - newDiscount
+                    
+                    return (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-fitnix-off-white/60">Original Total:</span>
+                          <span className="text-fitnix-off-white font-semibold">Rs. {originalTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-fitnix-off-white/60">New Discount:</span>
+                          <span className="text-fitnix-gold font-semibold">- Rs. {newDiscount.toFixed(2)}</span>
+                        </div>
+                        <div className="border-t border-fitnix-gold/20 pt-2 flex justify-between">
+                          <span className="text-fitnix-gold font-semibold">New Final Amount:</span>
+                          <span className="text-fitnix-gold font-bold text-lg">Rs. {newAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <button
+                onClick={handleUpdateDiscount}
+                disabled={discountLoading}
+                className="flex-1 fitnix-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {discountLoading ? 'Updating...' : 'Update Discount'}
+              </button>
+              <button
+                onClick={handleCloseDiscountModal}
+                disabled={discountLoading}
+                className="flex-1 fitnix-button-secondary disabled:opacity-50"
               >
                 Cancel
               </button>
