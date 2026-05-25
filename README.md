@@ -3,8 +3,8 @@
 A full-stack gym management platform with role-based access control, hardware attendance integration, real-time notifications, and financial reporting. Built with Python Flask, React.js, and SQLite.
 
 ---
+<img width="1024" height="472" alt="image" src="https://github.com/user-attachments/assets/6b4e15ee-2ad5-41de-9c3f-7311da4c16f3" />
 
-<img width="914" height="608" alt="image" src="https://github.com/user-attachments/assets/cdc6d2d0-678e-470b-843f-2b1a059add06" />
 
 
 ---
