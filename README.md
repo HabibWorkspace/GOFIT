@@ -113,9 +113,6 @@ MAIL_PASSWORD=your_email_password
 
 ---
 
-##  License
-
-MIT License — feel free to use this as a reference or learning resource.
 
 ---
 
