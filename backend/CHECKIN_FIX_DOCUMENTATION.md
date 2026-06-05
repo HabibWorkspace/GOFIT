@@ -187,8 +187,4 @@ If members still experience check-in issues:
 3. Check for overdue pending transactions (past grace period)
 4. Review backend logs for detailed validation flow
 
----
 
-**Fix Applied:** 2026-04-23
-**Fixed By:** Kiro AI Assistant
-**Status:** ✅ DEPLOYED (pending server restart)
